@@ -16,6 +16,12 @@ export interface ScenarioSummary {
   minMaxPercent: number;
   /** Largest "max roll" percent across all outcomes (defender's worst case). */
   maxMaxPercent: number;
+  /** Least damage possible: min roll of the weakest set. */
+  bestCasePercent: number;
+  /** Typical damage: the average roll of the average set. */
+  avgCasePercent: number;
+  /** Most damage possible: max roll of the strongest set (== maxMaxPercent). */
+  worstCasePercent: number;
   /** Any set combination that is a guaranteed OHKO. */
   guaranteedOHKO: boolean;
   /** Any set combination that can OHKO on a high roll. */

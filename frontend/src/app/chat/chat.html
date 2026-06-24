@@ -58,22 +58,48 @@
 
           @if (m.matchup) {
             <div class="matchup">
-              <span class="tag tag--def">{{ m.matchup.defender }}</span>
-              <span class="matchup__vs">vs</span>
-              <span class="tag tag--move">{{ m.matchup.move }}</span>
-              <span class="matchup__from">from</span>
-              <span class="tag tag--atk">{{ m.matchup.attacker }}</span>
+              <span class="mon mon--atk">
+                @if (m.atkSprite) {
+                  <img class="mon__sprite" [src]="m.atkSprite" alt="" />
+                }
+                <span class="mon__name">{{ m.matchup.attacker }}</span>
+              </span>
+              <span class="matchup__arrow">
+                <span class="matchup__move">{{ m.matchup.move }}</span>
+                <span class="matchup__line" aria-hidden="true">&rarr;</span>
+              </span>
+              <span class="mon mon--def">
+                @if (m.defSprite) {
+                  <img class="mon__sprite" [src]="m.defSprite" alt="" />
+                }
+                <span class="mon__name">{{ m.matchup.defender }}</span>
+              </span>
             </div>
           }
 
           <span class="msg__text">{{ m.text }}</span>
 
-          @if (m.worstPercent !== undefined) {
-            <div class="meter" [attr.data-v]="m.verdict">
-              <div class="meter__track">
-                <div class="meter__fill" [style.width.%]="m.worstPercent"></div>
+          @if (m.bar) {
+            <div class="range" [attr.data-v]="m.verdict">
+              <div class="range__track">
+                <div
+                  class="range__band"
+                  [style.left.%]="m.bar.best"
+                  [style.width.%]="m.bar.worst - m.bar.best"
+                ></div>
+                <div class="range__avg" [style.left.%]="m.bar.avg"></div>
               </div>
-              <span class="meter__value">{{ m.worstPercent }}% worst-case</span>
+              <div class="range__labels">
+                <span class="range__stat range__stat--best">
+                  <b>{{ m.bar.best }}%</b><i>best</i>
+                </span>
+                <span class="range__stat range__stat--avg">
+                  <b>{{ m.bar.avg }}%</b><i>avg</i>
+                </span>
+                <span class="range__stat range__stat--worst">
+                  <b>{{ m.bar.worst }}%</b><i>worst</i>
+                </span>
+              </div>
             </div>
           }
 

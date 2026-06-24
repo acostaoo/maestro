@@ -100,10 +100,19 @@ export class ScenarioService {
 
   private summarize(outcomes: ScenarioOutcome[]): ScenarioSummary {
     const maxPercents = outcomes.map((o) => o.result.maxPercent);
+    const minPercents = outcomes.map((o) => o.result.minPercent);
+    const avgPercents = outcomes.map(
+      (o) => (o.result.minPercent + o.result.maxPercent) / 2,
+    );
+    const worstCasePercent = Math.max(...maxPercents);
     return {
       outcomeCount: outcomes.length,
       minMaxPercent: Math.min(...maxPercents),
-      maxMaxPercent: Math.max(...maxPercents),
+      maxMaxPercent: worstCasePercent,
+      bestCasePercent: Math.min(...minPercents),
+      avgCasePercent:
+        avgPercents.reduce((sum, p) => sum + p, 0) / avgPercents.length,
+      worstCasePercent,
       guaranteedOHKO: outcomes.some((o) =>
         /guaranteed OHKO/i.test(o.result.koChanceText),
       ),

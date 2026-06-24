@@ -17,6 +17,9 @@ export interface ScenarioSummary {
   outcomeCount: number;
   minMaxPercent: number;
   maxMaxPercent: number;
+  bestCasePercent: number;
+  avgCasePercent: number;
+  worstCasePercent: number;
   guaranteedOHKO: boolean;
   possibleOHKO: boolean;
 }

@@ -1,8 +1,15 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AskService, AskResult } from '../ask.service';
+import { SpriteService } from '../sprite.service';
 
 type Verdict = 'survives' | 'risky' | 'ko';
+
+interface DamageBar {
+  best: number;
+  avg: number;
+  worst: number;
+}
 
 interface ChatMessage {
   role: 'user' | 'bot';
@@ -11,7 +18,9 @@ interface ChatMessage {
   error?: boolean;
   verdict?: Verdict;
   matchup?: { defender: string; move: string; attacker: string };
-  worstPercent?: number;
+  atkSprite?: string;
+  defSprite?: string;
+  bar?: DamageBar;
 }
 
 @Component({
@@ -22,6 +31,7 @@ interface ChatMessage {
 })
 export class Chat {
   private readonly ask = inject(AskService);
+  private readonly sprites = inject(SpriteService);
 
   protected readonly messages = signal<ChatMessage[]>([]);
   protected readonly loading = signal(false);
@@ -44,8 +54,10 @@ export class Chat {
 
     this.ask.ask(question).subscribe({
       next: (result) => {
-        this.messages.update((m) => [...m, this.toBotMessage(result)]);
+        const message = this.toBotMessage(result);
+        this.messages.update((m) => [...m, message]);
         this.loading.set(false);
+        this.loadSprites(message);
       },
       error: (err: unknown) => {
         const message = this.errorMessage(err);
@@ -66,6 +78,25 @@ export class Chat {
     return v === 'survives' ? '\u2713' : v === 'ko' ? '\u2715' : '\u26A0';
   }
 
+  /** Resolve attacker/defender sprites and patch them onto the message. */
+  private loadSprites(message: ChatMessage): void {
+    if (!message.matchup) {
+      return;
+    }
+    this.sprites.get(message.matchup.attacker).subscribe((url) => {
+      if (url) {
+        message.atkSprite = url;
+        this.messages.update((m) => [...m]);
+      }
+    });
+    this.sprites.get(message.matchup.defender).subscribe((url) => {
+      if (url) {
+        message.defSprite = url;
+        this.messages.update((m) => [...m]);
+      }
+    });
+  }
+
   private toBotMessage(result: AskResult): ChatMessage {
     const summary = result.scenario?.summary;
     return {
@@ -80,10 +111,18 @@ export class Chat {
             attacker: result.scenario.attacker,
           }
         : undefined,
-      worstPercent: summary
-        ? Math.min(100, Math.round(summary.maxMaxPercent))
+      bar: summary
+        ? {
+            best: this.clampPct(summary.bestCasePercent),
+            avg: this.clampPct(summary.avgCasePercent),
+            worst: this.clampPct(summary.worstCasePercent),
+          }
         : undefined,
     };
+  }
+
+  private clampPct(value: number): number {
+    return Math.max(0, Math.min(100, Math.round(value * 10) / 10));
   }
 
   private verdictFor(result: AskResult, guaranteedOHKO?: boolean): Verdict {
