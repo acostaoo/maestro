@@ -46,9 +46,25 @@ export class TeamService implements OnModuleInit {
     return this.team;
   }
 
-  /** The member matching a species, if it's on the team. */
+  /**
+   * The member matching a species, if it's on the team. Tries an exact id
+   * match first, then a base-form match so a spoken base name ("goodra")
+   * resolves to a regional member ("Goodra-Hisui").
+   */
   findMember(species: string): TeamMember | undefined {
     const id = toID(species);
-    return this.team.members.find((m) => toID(m.species) === id);
+    const exact = this.team.members.find((m) => toID(m.species) === id);
+    if (exact) {
+      return exact;
+    }
+    return this.team.members.find(
+      (m) =>
+        toID(m.species).startsWith(id) || toID(this.baseName(m.species)) === id,
+    );
+  }
+
+  /** The species name without its form suffix, e.g. "Goodra-Hisui" → "Goodra". */
+  private baseName(species: string): string {
+    return species.split('-')[0];
   }
 }
