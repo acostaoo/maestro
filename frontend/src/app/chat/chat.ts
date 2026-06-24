@@ -1,7 +1,8 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AskService, AskResult } from '../ask.service';
 import { SpriteService } from '../sprite.service';
+import { Team, TeamService } from '../team.service';
 
 type Verdict = 'survives' | 'risky' | 'ko';
 
@@ -29,18 +30,87 @@ interface ChatMessage {
   templateUrl: './chat.html',
   styleUrl: './chat.scss',
 })
-export class Chat {
+export class Chat implements OnInit {
   private readonly ask = inject(AskService);
   private readonly sprites = inject(SpriteService);
+  private readonly teamApi = inject(TeamService);
 
   protected readonly messages = signal<ChatMessage[]>([]);
   protected readonly loading = signal(false);
   protected inputText = '';
 
+  protected readonly team = signal<Team | null>(null);
+  protected readonly teamSprites = signal<Record<string, string>>({});
+  protected readonly importing = signal(false);
+  protected readonly importError = signal<string | null>(null);
+
   protected readonly examples = [
     'can my goodra tank a draco meteor from archaludon?',
     'can my incineroar survive a draco from goodra?',
   ];
+
+  ngOnInit(): void {
+    this.refreshTeam();
+  }
+
+  /** Load the currently held team and resolve its sprites. */
+  private refreshTeam(): void {
+    this.teamApi.get().subscribe({
+      next: (team) => this.applyTeam(team),
+      error: () => this.team.set(null),
+    });
+  }
+
+  private applyTeam(team: Team): void {
+    this.team.set(team);
+    for (const member of team.members) {
+      this.sprites.get(member.species).subscribe((url) => {
+        if (url) {
+          this.teamSprites.update((map) => ({ ...map, [member.species]: url }));
+        }
+      });
+    }
+  }
+
+  /** Read a chosen screenshot file and send it to the vision importer. */
+  onScreenshot(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file || this.importing()) {
+      return;
+    }
+
+    this.importError.set(null);
+    this.importing.set(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      this.teamApi.importScreenshot(dataUrl, file.type || 'image/png').subscribe({
+        next: (team) => {
+          this.applyTeam(team);
+          this.importing.set(false);
+          const count = team.members.length;
+          this.messages.update((m) => [
+            ...m,
+            {
+              role: 'bot',
+              text: `Loaded ${count} Pok\u00e9mon from your screenshot. Ask away \u2014 "my <mon>" now uses this team.`,
+            },
+          ]);
+        },
+        error: (err: unknown) => {
+          this.importing.set(false);
+          this.importError.set(this.errorMessage(err));
+        },
+      });
+    };
+    reader.onerror = () => {
+      this.importing.set(false);
+      this.importError.set('Could not read that image file.');
+    };
+    reader.readAsDataURL(file);
+  }
 
   send(text?: string): void {
     const question = (text ?? this.inputText).trim();

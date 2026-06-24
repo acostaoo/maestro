@@ -85,6 +85,11 @@
 
   &__header {
     padding: 22px 4px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
   }
 
   &__log {
@@ -152,6 +157,81 @@
         box-shadow: none;
       }
     }
+  }
+}
+
+/* ---------- team strip ---------- */
+.team {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  &__roster {
+    display: flex;
+    align-items: center;
+    padding: 4px 6px;
+    border-radius: 12px;
+    background: rgba(20, 24, 36, 0.6);
+    border: 1px solid var(--border);
+  }
+
+  &__mon {
+    width: 34px;
+    height: 34px;
+    margin-left: -8px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(40, 46, 66, 0.9);
+    box-shadow: 0 0 0 2px var(--bg);
+
+    &:first-child { margin-left: 0; }
+  }
+
+  &__sprite {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+
+  &__dot {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  &__import {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: rgba(20, 24, 36, 0.9);
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.12s;
+
+    &:hover { border-color: var(--accent); transform: translateY(-1px); }
+    &.is-busy { opacity: 0.6; cursor: default; transform: none; }
+  }
+
+  &__import-icon {
+    font-size: 1rem;
+    color: var(--accent);
+  }
+
+  &__error {
+    margin: 0 4px 8px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: rgba(242, 92, 112, 0.12);
+    border: 1px solid rgba(242, 92, 112, 0.4);
+    color: var(--bad);
+    font-size: 0.85rem;
   }
 }
 

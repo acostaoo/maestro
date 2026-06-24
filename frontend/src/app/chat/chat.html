@@ -15,7 +15,38 @@
         <p>VGC damage Q&amp;A &middot; Regulation M-B &middot; Pok&eacute;mon Champions</p>
       </div>
     </div>
+
+    <div class="team">
+      @if (team(); as t) {
+        <div class="team__roster" [title]="t.name || 'Your team'">
+          @for (mon of t.members; track mon.species) {
+            <span class="team__mon" [title]="mon.species">
+              @if (teamSprites()[mon.species]; as url) {
+                <img class="team__sprite" [src]="url" [alt]="mon.species" />
+              } @else {
+                <span class="team__dot">{{ mon.species.charAt(0) }}</span>
+              }
+            </span>
+          }
+        </div>
+      }
+      <label class="team__import" [class.is-busy]="importing()">
+        <input
+          type="file"
+          accept="image/*"
+          (change)="onScreenshot($event)"
+          [disabled]="importing()"
+          hidden
+        />
+        <span class="team__import-icon" aria-hidden="true">&#9783;</span>
+        {{ importing() ? 'Reading\u2026' : 'Import from screenshot' }}
+      </label>
+    </div>
   </header>
+
+  @if (importError(); as err) {
+    <p class="team__error">{{ err }}</p>
+  }
 
   <div class="chat__log">
     @if (messages().length === 0) {
