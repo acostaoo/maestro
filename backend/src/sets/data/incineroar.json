@@ -1,0 +1,25 @@
+{
+  "species": "Incineroar",
+  "sets": [
+    {
+      "name": "Bulky Support (PLACEHOLDER)",
+      "item": "Safety Goggles",
+      "ability": "Intimidate",
+      "nature": "Careful",
+      "teraType": "Water",
+      "evs": { "hp": 252, "def": 4, "spd": 252 },
+      "moves": ["Fake Out", "Knock Off", "Parting Shot", "Will-O-Wisp"],
+      "usage": 0.4
+    },
+    {
+      "name": "Offensive Tera (PLACEHOLDER)",
+      "item": "Assault Vest",
+      "ability": "Intimidate",
+      "nature": "Adamant",
+      "teraType": "Grass",
+      "evs": { "hp": 252, "atk": 76, "spd": 180 },
+      "moves": ["Fake Out", "Flare Blitz", "Knock Off", "U-turn"],
+      "usage": 0.18
+    }
+  ]
+}
