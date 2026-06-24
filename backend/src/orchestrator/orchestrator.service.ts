@@ -1,9 +1,13 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { NLG, type Nlg } from '../nlg/nlg.interface';
 import { NLU, type Nlu, type ParsedQuestion } from '../nlu/nlu.interface';
-import type { ScenarioRequestDto } from '../scenario/dto/scenario-request.dto';
+import type {
+  ScenarioRequestDto,
+  SideDto,
+} from '../scenario/dto/scenario-request.dto';
 import { ScenarioService } from '../scenario/scenario.service';
 import { SetsService } from '../sets/sets.service';
+import { TeamService } from '../team/team.service';
 import type { AskResult } from './orchestrator.types';
 
 /**
@@ -18,6 +22,7 @@ export class OrchestratorService {
     @Inject(NLG) private readonly nlg: Nlg,
     private readonly scenario: ScenarioService,
     private readonly sets: SetsService,
+    private readonly team: TeamService,
   ) {}
 
   ask(text: string): AskResult {
@@ -36,15 +41,34 @@ export class OrchestratorService {
   }
 
   /**
-   * Map an understood question to a scenario request. The attacker fans out
-   * across stored sets when available (the spread feature); otherwise both
-   * sides use a default build so we can still answer.
+   * Map an understood question to a scenario request. The defender is the
+   * user's own Pokémon ("my X"), so it resolves to that team member's real
+   * spread when known (digested from the team screenshot); otherwise a default
+   * build. The attacker fans out across stored sets when available.
    */
   private toScenarioRequest(q: ParsedQuestion): ScenarioRequestDto {
     return {
       attacker: { name: q.attacker!, useSets: this.sets.hasSets(q.attacker!) },
-      defender: { name: q.defender! },
+      defender: this.defenderSide(q.defender!),
       move: { name: q.move! },
     };
   }
+
+  private defenderSide(species: string): SideDto {
+    const member = this.team.findMember(species);
+    if (!member) {
+      return { name: species };
+    }
+    return {
+      name: member.species,
+      level: member.level,
+      item: member.item,
+      ability: member.ability,
+      nature: member.nature,
+      teraType: member.teraType,
+      evs: member.evs,
+      ivs: member.ivs,
+    };
+  }
 }
+

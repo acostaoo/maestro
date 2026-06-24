@@ -7,6 +7,7 @@ import { ScenarioModule } from './scenario/scenario.module';
 import { SetsModule } from './sets/sets.module';
 import { NluModule } from './nlu/nlu.module';
 import { NlgModule } from './nlg/nlg.module';
+import { TeamModule } from './team/team.module';
 import { OrchestratorModule } from './orchestrator/orchestrator.module';
 
 @Module({
@@ -17,6 +18,7 @@ import { OrchestratorModule } from './orchestrator/orchestrator.module';
     ScenarioModule,
     NluModule,
     NlgModule,
+    TeamModule,
     OrchestratorModule,
   ],
   controllers: [AppController],

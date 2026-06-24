@@ -1,0 +1,25 @@
+{
+  "name": "My Reg M-B Team (PLACEHOLDER)",
+  "members": [
+    {
+      "species": "Goodra",
+      "level": 50,
+      "item": "Assault Vest",
+      "ability": "Sap Sipper",
+      "nature": "Calm",
+      "teraType": "Steel",
+      "evs": { "hp": 252, "def": 4, "spd": 252 },
+      "moves": ["Draco Meteor", "Flamethrower", "Sludge Bomb", "Thunderbolt"]
+    },
+    {
+      "species": "Incineroar",
+      "level": 50,
+      "item": "Safety Goggles",
+      "ability": "Intimidate",
+      "nature": "Careful",
+      "teraType": "Grass",
+      "evs": { "hp": 252, "def": 4, "spd": 252 },
+      "moves": ["Fake Out", "Knock Off", "Parting Shot", "Will-O-Wisp"]
+    }
+  ]
+}
