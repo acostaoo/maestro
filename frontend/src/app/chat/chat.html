@@ -1,0 +1,59 @@
+<div class="chat">
+  <header class="chat__header">
+    <h1>maestro</h1>
+    <p>VGC damage Q&amp;A — Regulation M-B (Pok&eacute;mon Champions)</p>
+  </header>
+
+  <div class="chat__log">
+    @if (messages().length === 0) {
+      <div class="chat__empty">
+        <p>Ask a survival question. Try:</p>
+        @for (ex of examples; track ex) {
+          <button type="button" class="chip" (click)="send(ex)">{{ ex }}</button>
+        }
+      </div>
+    }
+
+    @for (m of messages(); track $index) {
+      <div
+        class="msg"
+        [class.msg--user]="m.role === 'user'"
+        [class.msg--bot]="m.role === 'bot'"
+        [class.msg--error]="m.error"
+      >
+        <div class="msg__bubble">
+          <span class="msg__text">{{ m.text }}</span>
+          @if (m.details?.length) {
+            <details class="msg__details">
+              <summary>calc details</summary>
+              <ul>
+                @for (d of m.details; track $index) {
+                  <li>{{ d }}</li>
+                }
+              </ul>
+            </details>
+          }
+        </div>
+      </div>
+    }
+
+    @if (loading()) {
+      <div class="msg msg--bot">
+        <div class="msg__bubble msg__bubble--typing">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    }
+  </div>
+
+  <form class="chat__input" (ngSubmit)="send()">
+    <input
+      type="text"
+      name="q"
+      [(ngModel)]="inputText"
+      placeholder="can my goodra tank a draco from archaludon?"
+      autocomplete="off"
+    />
+    <button type="submit" [disabled]="loading()">Send</button>
+  </form>
+</div>
