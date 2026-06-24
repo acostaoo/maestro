@@ -1,12 +1,17 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AskService } from '../ask.service';
+import { AskService, AskResult } from '../ask.service';
+
+type Verdict = 'survives' | 'risky' | 'ko';
 
 interface ChatMessage {
   role: 'user' | 'bot';
   text: string;
   details?: string[];
   error?: boolean;
+  verdict?: Verdict;
+  matchup?: { defender: string; move: string; attacker: string };
+  worstPercent?: number;
 }
 
 @Component({
@@ -39,10 +44,7 @@ export class Chat {
 
     this.ask.ask(question).subscribe({
       next: (result) => {
-        this.messages.update((m) => [
-          ...m,
-          { role: 'bot', text: result.answer, details: result.details },
-        ]);
+        this.messages.update((m) => [...m, this.toBotMessage(result)]);
         this.loading.set(false);
       },
       error: (err: unknown) => {
@@ -54,6 +56,45 @@ export class Chat {
         this.loading.set(false);
       },
     });
+  }
+
+  protected verdictLabel(v: Verdict): string {
+    return v === 'survives' ? 'Survives' : v === 'ko' ? 'Gets KO\u2019d' : 'Risky';
+  }
+
+  protected verdictIcon(v: Verdict): string {
+    return v === 'survives' ? '\u2713' : v === 'ko' ? '\u2715' : '\u26A0';
+  }
+
+  private toBotMessage(result: AskResult): ChatMessage {
+    const summary = result.scenario?.summary;
+    return {
+      role: 'bot',
+      text: result.answer,
+      details: result.details,
+      verdict: this.verdictFor(result, summary?.guaranteedOHKO),
+      matchup: result.scenario
+        ? {
+            defender: result.scenario.defender,
+            move: result.scenario.move,
+            attacker: result.scenario.attacker,
+          }
+        : undefined,
+      worstPercent: summary
+        ? Math.min(100, Math.round(summary.maxMaxPercent))
+        : undefined,
+    };
+  }
+
+  private verdictFor(result: AskResult, guaranteedOHKO?: boolean): Verdict {
+    const head = result.answer.trim().toLowerCase();
+    if (head.startsWith('yes')) {
+      return 'survives';
+    }
+    if (head.startsWith('no') || guaranteedOHKO) {
+      return 'ko';
+    }
+    return 'risky';
   }
 
   private errorMessage(err: unknown): string {

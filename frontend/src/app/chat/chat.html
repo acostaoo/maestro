@@ -1,16 +1,37 @@
 <div class="chat">
+  <div class="chat__bg" aria-hidden="true">
+    <span class="orb orb--1"></span>
+    <span class="orb orb--2"></span>
+    <span class="grid"></span>
+  </div>
+
   <header class="chat__header">
-    <h1>maestro</h1>
-    <p>VGC damage Q&amp;A — Regulation M-B (Pok&eacute;mon Champions)</p>
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true">
+        <span class="brand__ball"></span>
+      </span>
+      <div class="brand__text">
+        <h1>maestro</h1>
+        <p>VGC damage Q&amp;A &middot; Regulation M-B &middot; Pok&eacute;mon Champions</p>
+      </div>
+    </div>
   </header>
 
   <div class="chat__log">
     @if (messages().length === 0) {
       <div class="chat__empty">
-        <p>Ask a survival question. Try:</p>
-        @for (ex of examples; track ex) {
-          <button type="button" class="chip" (click)="send(ex)">{{ ex }}</button>
-        }
+        <div class="hero">
+          <span class="hero__ball" aria-hidden="true"></span>
+          <h2>Will it live?</h2>
+          <p>Ask a survival question in plain English &mdash; I&rsquo;ll run the calcs.</p>
+        </div>
+        <div class="examples">
+          @for (ex of examples; track ex) {
+            <button type="button" class="chip" (click)="send(ex)">
+              <span class="chip__spark" aria-hidden="true">&rsaquo;</span>{{ ex }}
+            </button>
+          }
+        </div>
       </div>
     }
 
@@ -21,8 +42,41 @@
         [class.msg--bot]="m.role === 'bot'"
         [class.msg--error]="m.error"
       >
+        @if (m.role === 'bot') {
+          <span class="avatar avatar--bot" aria-hidden="true">
+            <span class="avatar__ball"></span>
+          </span>
+        }
+
         <div class="msg__bubble">
+          @if (m.verdict) {
+            <div class="verdict" [attr.data-v]="m.verdict">
+              <span class="verdict__icon">{{ verdictIcon(m.verdict) }}</span>
+              <span class="verdict__label">{{ verdictLabel(m.verdict) }}</span>
+            </div>
+          }
+
+          @if (m.matchup) {
+            <div class="matchup">
+              <span class="tag tag--def">{{ m.matchup.defender }}</span>
+              <span class="matchup__vs">vs</span>
+              <span class="tag tag--move">{{ m.matchup.move }}</span>
+              <span class="matchup__from">from</span>
+              <span class="tag tag--atk">{{ m.matchup.attacker }}</span>
+            </div>
+          }
+
           <span class="msg__text">{{ m.text }}</span>
+
+          @if (m.worstPercent !== undefined) {
+            <div class="meter" [attr.data-v]="m.verdict">
+              <div class="meter__track">
+                <div class="meter__fill" [style.width.%]="m.worstPercent"></div>
+              </div>
+              <span class="meter__value">{{ m.worstPercent }}% worst-case</span>
+            </div>
+          }
+
           @if (m.details?.length) {
             <details class="msg__details">
               <summary>calc details</summary>
@@ -34,11 +88,18 @@
             </details>
           }
         </div>
+
+        @if (m.role === 'user') {
+          <span class="avatar avatar--user" aria-hidden="true">you</span>
+        }
       </div>
     }
 
     @if (loading()) {
       <div class="msg msg--bot">
+        <span class="avatar avatar--bot" aria-hidden="true">
+          <span class="avatar__ball"></span>
+        </span>
         <div class="msg__bubble msg__bubble--typing">
           <span></span><span></span><span></span>
         </div>
@@ -54,6 +115,8 @@
       placeholder="can my goodra tank a draco from archaludon?"
       autocomplete="off"
     />
-    <button type="submit" [disabled]="loading()">Send</button>
+    <button type="submit" [disabled]="loading()" aria-label="Send">
+      <span class="send-icon" aria-hidden="true">&#10148;</span>
+    </button>
   </form>
 </div>

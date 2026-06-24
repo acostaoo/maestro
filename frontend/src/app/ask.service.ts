@@ -12,12 +12,28 @@ export interface ParsedQuestion {
   reason?: string;
 }
 
+/** Roll summary across every set matchup. */
+export interface ScenarioSummary {
+  outcomeCount: number;
+  minMaxPercent: number;
+  maxMaxPercent: number;
+  guaranteedOHKO: boolean;
+  possibleOHKO: boolean;
+}
+
+export interface ScenarioResult {
+  attacker: string;
+  defender: string;
+  move: string;
+  summary: ScenarioSummary;
+}
+
 /** Response of POST /ask. */
 export interface AskResult {
   answer: string;
   details: string[];
   understood: ParsedQuestion;
-  scenario: unknown;
+  scenario: ScenarioResult;
 }
 
 @Injectable({ providedIn: 'root' })
