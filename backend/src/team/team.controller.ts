@@ -3,9 +3,11 @@ import {
   Get,
   NotFoundException,
   Param,
+  Post,
   Put,
   Body,
 } from '@nestjs/common';
+import { ImportTeamDto } from './dto/import-team.dto';
 import { SetTeamDto } from './dto/set-team.dto';
 import { TeamService } from './team.service';
 import type { Team, TeamMember } from './team.types';
@@ -22,6 +24,11 @@ export class TeamController {
   @Put()
   set(@Body() body: SetTeamDto): Team {
     return this.team.setTeam(body);
+  }
+
+  @Post('import')
+  import(@Body() body: ImportTeamDto): Team {
+    return this.team.importPaste(body.paste, body.name);
   }
 
   @Get(':name')
