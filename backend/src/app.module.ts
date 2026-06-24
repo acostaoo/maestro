@@ -5,9 +5,20 @@ import { CalcModule } from './calc/calc.module';
 import { FormatModule } from './format/format.module';
 import { ScenarioModule } from './scenario/scenario.module';
 import { SetsModule } from './sets/sets.module';
+import { NluModule } from './nlu/nlu.module';
+import { NlgModule } from './nlg/nlg.module';
+import { OrchestratorModule } from './orchestrator/orchestrator.module';
 
 @Module({
-  imports: [CalcModule, FormatModule, SetsModule, ScenarioModule],
+  imports: [
+    CalcModule,
+    FormatModule,
+    SetsModule,
+    ScenarioModule,
+    NluModule,
+    NlgModule,
+    OrchestratorModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

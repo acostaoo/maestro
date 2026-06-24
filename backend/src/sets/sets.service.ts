@@ -29,6 +29,11 @@ export class SetsService {
     return found;
   }
 
+  /** Whether any sets are stored for a species (non-throwing). */
+  hasSets(species: string): boolean {
+    return this.repo.has(species);
+  }
+
   /** Species that currently have stored sets. */
   listCovered(): string[] {
     return this.repo.all().map((s) => s.species);
