@@ -2,9 +2,10 @@ import type { Team } from '../team/team.types';
 
 /**
  * The vision ("see the team") agent contract. Turns a game screenshot into a
- * structured team. A Gemini-backed implementation ships now; a local-model
- * implementation (e.g. Ollama llava) can be bound to the same token without
- * touching the team controller.
+ * structured team. Multiple implementations bind to the same VISION token and
+ * are chosen by environment (see vision.module.ts): Gemini, or any
+ * OpenAI-compatible API including local Ollama / LM Studio. Adding another
+ * provider never touches the team controller.
  */
 
 /** Injection token used to bind a VisionTeamExtractor implementation. */
