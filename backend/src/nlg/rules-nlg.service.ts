@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { ParsedQuestion } from '../nlu/nlu.interface';
+import type { ParsedQuestion, Weather } from '../nlu/nlu.interface';
 import type {
   BoostSpread,
   ScenarioOutcome,
@@ -18,6 +18,14 @@ const STAT_LABEL: Record<keyof BoostSpread, string> = {
   spe: 'Spe',
 };
 
+/** Natural scene-setting phrase for each weather (leads the answer). */
+const WEATHER_PHRASE: Record<Weather, string> = {
+  Rain: 'in the rain',
+  Sun: 'in the sun',
+  Sand: 'in the sandstorm',
+  Snow: 'in the snow',
+};
+
 /**
  * Rules-based narrator. Reads a scenario fan-out and produces a spoken answer
  * to a "can my X tank a MOVE from Y?" question, plus per-set detail lines.
@@ -25,7 +33,7 @@ const STAT_LABEL: Record<keyof BoostSpread, string> = {
 @Injectable()
 export class RulesNlgService implements Nlg {
   narrate(
-    _question: ParsedQuestion,
+    question: ParsedQuestion,
     scenario: ScenarioResult,
     baseline?: ScenarioResult,
   ): NarratedAnswer {
@@ -35,11 +43,30 @@ export class RulesNlgService implements Nlg {
       return { answer: 'No matchups to evaluate.', details };
     }
 
-    if (baseline && baseline.outcomes.length > 0) {
-      return this.narrateDual(scenario, baseline, details);
-    }
+    const narrated =
+      baseline && baseline.outcomes.length > 0
+        ? this.narrateDual(scenario, baseline, details)
+        : this.narrateSingle(scenario, details);
 
-    return this.narrateSingle(scenario, details);
+    return this.withWeather(narrated, question.weather);
+  }
+
+  /** Lead the answer with the weather so it reads naturally ("In the rain, yes…"). */
+  private withWeather(
+    result: NarratedAnswer,
+    weather?: Weather,
+  ): NarratedAnswer {
+    if (!weather) {
+      return result;
+    }
+    const phrase = WEATHER_PHRASE[weather];
+    if (new RegExp(phrase, 'i').test(result.answer)) {
+      return result; // already mentioned
+    }
+    const body = result.answer;
+    const lead = body.charAt(0).toLowerCase() + body.slice(1);
+    const prefix = phrase.charAt(0).toUpperCase() + phrase.slice(1);
+    return { ...result, answer: `${prefix}, ${lead}` };
   }
 
   /** Original single-scenario narration (no stat changes involved). */

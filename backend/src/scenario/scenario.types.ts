@@ -40,6 +40,8 @@ export interface ScenarioResult {
   move: string;
   /** Type-effectiveness of the move vs the defender (same across all sets). */
   effectiveness?: number;
+  /** Weather damage multiplier on the move (0.5/1/1.5), if weather is up. */
+  weatherMod?: number;
   /** Stat changes applied to the attacker for this run, if any. */
   attackerBoosts?: BoostSpread;
   /** Stat changes applied to the defender for this run, if any. */

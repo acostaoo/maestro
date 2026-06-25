@@ -45,6 +45,7 @@ export class CalcService {
       move.category === 'Status'
         ? undefined
         : this.typeEffectiveness(move, defender);
+    const weatherMod = this.weatherModifier(move, field);
 
     // Zero-damage moves (type immunity, status moves) make @smogon/calc throw
     // inside both desc() and kochance(), so handle them explicitly.
@@ -60,6 +61,7 @@ export class CalcService {
         koChanceText: 'no damage (immune or status move)',
         koHits: 0,
         effectiveness,
+        weatherMod,
       };
     }
 
@@ -76,6 +78,7 @@ export class CalcService {
       koChanceText: ko.text || 'unknown',
       koHits: ko.n,
       effectiveness,
+      weatherMod,
     };
   }
 
@@ -90,6 +93,25 @@ export class CalcService {
       multiplier *= chart.effectiveness[type] ?? 1;
     }
     return multiplier;
+  }
+
+  /** Damage multiplier the active weather applies to this move (1 if none). */
+  private weatherModifier(move: Move, field: Field): number | undefined {
+    if (move.category === 'Status') {
+      return undefined;
+    }
+    const weather = field.weather;
+    if (!weather) {
+      return undefined;
+    }
+    if (weather === 'Rain' || weather === 'Heavy Rain') {
+      if (move.type === 'Water') return 1.5;
+      if (move.type === 'Fire') return 0.5;
+    } else if (weather === 'Sun' || weather === 'Harsh Sunshine') {
+      if (move.type === 'Fire') return 1.5;
+      if (move.type === 'Water') return 0.5;
+    }
+    return 1; // weather is up but doesn't change this move
   }
 
   private buildPokemon(dto: PokemonDto | undefined, role: string): Pokemon {

@@ -13,6 +13,7 @@ export interface ParsedQuestion {
   defender?: string;
   attacker?: string;
   move?: string;
+  weather?: 'Sun' | 'Rain' | 'Sand' | 'Snow';
   raw: string;
   reason?: string;
 }
@@ -34,6 +35,7 @@ export interface ScenarioResult {
   defender: string;
   move: string;
   effectiveness?: number;
+  weatherMod?: number;
   attackerBoosts?: BoostSpread;
   defenderBoosts?: BoostSpread;
   summary: ScenarioSummary;

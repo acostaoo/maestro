@@ -13,6 +13,7 @@
   --good: #36d399;
   --warn: #f7b955;
   --bad: #f25c70;
+  --info: #7aa7ff;
 
   display: block;
   min-height: 100vh;
@@ -495,6 +496,13 @@
     .verdict__icon { background: var(--good); }
   }
 
+  &[data-v="situational"] {
+    background: rgba(122, 167, 255, 0.12);
+    border-color: rgba(122, 167, 255, 0.4);
+    color: var(--info);
+    .verdict__icon { background: var(--info); }
+  }
+
   &[data-v="risky"] {
     background: rgba(247, 185, 85, 0.12);
     border-color: rgba(247, 185, 85, 0.4);
@@ -524,8 +532,9 @@
 
 .mon {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 3px;
   min-width: 0;
 
   &__sprite {
@@ -534,7 +543,7 @@
     object-fit: contain;
     image-rendering: pixelated;
     flex: 0 0 auto;
-    margin: -8px 0;
+    margin: -6px 0 -2px;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
   }
 
@@ -544,6 +553,8 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 88px;
+    text-align: center;
   }
 
   &--def .mon__name { color: var(--accent); }
@@ -612,6 +623,22 @@
   }
 }
 
+/* weather damage multiplier on the move (e.g. "−50%" in rain on a Fire move) */
+.matchup__weather {
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 1px 5px;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: #0c1018;
+
+  &[data-weather="Rain"] { background: #5db4ff; }
+  &[data-weather="Sun"]  { background: #ffb02e; }
+  &[data-weather="Sand"] { background: #d8a25a; }
+  &[data-weather="Snow"] { background: #d7e3f0; }
+}
+
 .matchup__line {
   color: var(--muted);
   font-size: 0.95rem;
@@ -655,6 +682,9 @@
       width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  &[data-v="situational"] &__band {
+    background: linear-gradient(to right, var(--good), var(--info));
+  }
   &[data-v="risky"] &__band {
     background: linear-gradient(to right, var(--warn), var(--bad));
   }
@@ -771,4 +801,14 @@
 @keyframes bob {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
+}
+
+/* weather phrase highlight inside the answer ("under rain") */
+.weather {
+  font-weight: 700;
+
+  &[data-weather="Rain"] { color: #5db4ff; }   /* blue */
+  &[data-weather="Sun"]  { color: #ffb02e; }   /* gold */
+  &[data-weather="Sand"] { color: #d8a25a; }   /* tan */
+  &[data-weather="Snow"] { color: #d7e3f0; }   /* pale gray-white */
 }

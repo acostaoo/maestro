@@ -12,7 +12,17 @@ import { AskService, AskResult, BoostSpread } from '../ask.service';
 import { SpriteService } from '../sprite.service';
 import { Team, TeamService } from '../team.service';
 
-type Verdict = 'survives' | 'risky' | 'ko';
+type Verdict = 'survives' | 'situational' | 'risky' | 'ko';
+
+type Weather = 'Sun' | 'Rain' | 'Sand' | 'Snow';
+
+/** Must match the backend NLG's WEATHER_PHRASE, for highlight detection. */
+const WEATHER_PHRASE: Record<Weather, string> = {
+  Rain: 'in the rain',
+  Sun: 'in the sun',
+  Sand: 'in the sandstorm',
+  Snow: 'in the snow',
+};
 
 interface DamageBar {
   best: number;
@@ -26,11 +36,14 @@ interface ChatMessage {
   details?: string[];
   error?: boolean;
   verdict?: Verdict;
+  weather?: Weather;
   matchup?: {
     defender: string;
     move: string;
     attacker: string;
     effectiveness?: number;
+    weatherMod?: number;
+    weather?: Weather;
     attackerBoosts?: BoostSpread;
     defenderBoosts?: BoostSpread;
   };
@@ -225,11 +238,29 @@ export class Chat implements OnInit, AfterViewChecked {
   }
 
   protected verdictLabel(v: Verdict): string {
-    return v === 'survives' ? 'Survives' : v === 'ko' ? 'Gets KO\u2019d' : 'Risky';
+    switch (v) {
+      case 'survives':
+        return 'Survives';
+      case 'situational':
+        return 'Situational';
+      case 'ko':
+        return 'Gets KO\u2019d';
+      default:
+        return 'Risky';
+    }
   }
 
   protected verdictIcon(v: Verdict): string {
-    return v === 'survives' ? '\u2713' : v === 'ko' ? '\u2715' : '\u26A0';
+    switch (v) {
+      case 'survives':
+        return '\u2713';
+      case 'situational':
+        return '\u2248'; // ≈ — holds under conditions
+      case 'ko':
+        return '\u2715';
+      default:
+        return '\u26A0';
+    }
   }
 
   /** Resolve attacker/defender sprites and patch them onto the message. */
@@ -258,12 +289,15 @@ export class Chat implements OnInit, AfterViewChecked {
       text: result.answer,
       details: result.details,
       verdict: this.verdictFor(result, summary?.guaranteedOHKO),
+      weather: result.understood?.weather,
       matchup: result.scenario
         ? {
             defender: result.scenario.defender,
             move: result.scenario.move,
             attacker: result.scenario.attacker,
             effectiveness: result.scenario.effectiveness,
+            weatherMod: result.scenario.weatherMod,
+            weather: result.understood?.weather,
             attackerBoosts: result.scenario.attackerBoosts,
             defenderBoosts: result.scenario.defenderBoosts,
           }
@@ -282,6 +316,32 @@ export class Chat implements OnInit, AfterViewChecked {
     return Math.max(0, Math.min(100, Math.round(value * 10) / 10));
   }
 
+  /**
+   * Split the answer so the "under <weather>" phrase can be highlighted.
+   * Returns plain chunks plus the weather chunk (flagged) in reading order.
+   */
+  protected textSegments(
+    m: ChatMessage,
+  ): { text: string; weather?: Weather }[] {
+    if (!m.weather) {
+      return [{ text: m.text }];
+    }
+    const phrase = WEATHER_PHRASE[m.weather];
+    const idx = m.text.toLowerCase().indexOf(phrase);
+    if (idx < 0) {
+      return [{ text: m.text }];
+    }
+    const segments: { text: string; weather?: Weather }[] = [];
+    if (idx > 0) segments.push({ text: m.text.slice(0, idx) });
+    segments.push({
+      text: m.text.slice(idx, idx + phrase.length),
+      weather: m.weather,
+    });
+    const rest = m.text.slice(idx + phrase.length);
+    if (rest) segments.push({ text: rest });
+    return segments;
+  }
+
   /** Human label for a type-effectiveness multiplier, or null when neutral. */
   protected effLabel(effectiveness?: number): string | null {
     if (effectiveness == null || effectiveness === 1) {
@@ -291,6 +351,15 @@ export class Chat implements OnInit, AfterViewChecked {
     if (effectiveness === 0.25) return '¼×';
     if (effectiveness === 0.5) return '½×';
     return `${effectiveness}×`;
+  }
+
+  /** Weather damage swing as a signed percent ("+50%" / "−50%"), or null. */
+  protected weatherModLabel(mod?: number): string | null {
+    if (mod == null || mod === 1) {
+      return null;
+    }
+    const pct = Math.round(Math.abs(mod - 1) * 100);
+    return `${mod > 1 ? '+' : '−'}${pct}%`;
   }
 
   /** "−1 Atk" / "+2 Spe, −1 Def", or null when there are no stat changes. */
@@ -323,12 +392,19 @@ export class Chat implements OnInit, AfterViewChecked {
   }
 
   private verdictFor(result: AskResult, guaranteedOHKO?: boolean): Verdict {
-    const head = result.answer.trim().toLowerCase();
-    if (head.startsWith('yes')) {
-      return 'survives';
-    }
+    const weather = result.understood?.weather;
+    // Strip a leading weather scene-setter ("In the rain, yes — …") so the
+    // yes/no read isn't fooled by the prefix.
+    const head = result.answer
+      .trim()
+      .toLowerCase()
+      .replace(/^in the (rain|sun|sandstorm|snow),\s*/, '');
     if (head.startsWith('no') || guaranteedOHKO) {
       return 'ko';
+    }
+    if (head.startsWith('yes')) {
+      // A clean survival that only holds because of the stated weather.
+      return weather ? 'situational' : 'survives';
     }
     return 'risky';
   }

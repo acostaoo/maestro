@@ -111,6 +111,13 @@
                     >{{ eff }}</span
                   >
                 }
+                @if (weatherModLabel(m.matchup.weatherMod); as wmod) {
+                  <span
+                    class="matchup__weather"
+                    [attr.data-weather]="m.matchup.weather"
+                    >{{ wmod }}</span
+                  >
+                }
                 <span class="matchup__line" aria-hidden="true">&rarr;</span>
               </span>
               <span class="mon mon--def">
@@ -129,7 +136,10 @@
             </div>
           }
 
-          <span class="msg__text">{{ m.text }}</span>
+          <span class="msg__text">@for (seg of textSegments(m); track $index) {@if (seg.weather) {<span
+                class="weather"
+                [attr.data-weather]="seg.weather"
+                >{{ seg.text }}</span>}@else {<span>{{ seg.text }}</span>}}</span>
 
           @if (m.bar) {
             <div class="range" [attr.data-v]="m.verdict">
@@ -191,7 +201,7 @@
       name="q"
       [(ngModel)]="inputText"
       (keydown)="onKeydown($event)"
-      placeholder="can my goodra tank a draco from archaludon?"
+      placeholder="TODO include the a new generated question as suggestion"
       autocomplete="off"
     />
     <button type="submit" [disabled]="loading()" aria-label="Send">

@@ -16,6 +16,9 @@ export type BoostSpread = Partial<
   Record<'atk' | 'def' | 'spa' | 'spd' | 'spe', number>
 >;
 
+/** Active weather, when the question states one (e.g. "under rain"). */
+export type Weather = 'Sun' | 'Rain' | 'Sand' | 'Snow';
+
 /** Structured result of parsing a question. */
 export interface ParsedQuestion {
   intent: QuestionIntent;
@@ -29,6 +32,8 @@ export interface ParsedQuestion {
   attackerBoosts?: BoostSpread;
   /** Stat changes on the defender. */
   defenderBoosts?: BoostSpread;
+  /** Weather in play, if the question mentions it. */
+  weather?: Weather;
   /** Original text, kept for narration/debugging. */
   raw: string;
   /** Why parsing failed, when intent is "unknown". */

@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Generations } from '@smogon/calc';
-import type { BoostSpread, Nlu, ParsedQuestion } from './nlu.interface';
+import type {
+  BoostSpread,
+  Nlu,
+  ParsedQuestion,
+  Weather,
+} from './nlu.interface';
 
 const GEN = Generations.get(9);
 
@@ -112,6 +117,7 @@ export class RulesNluService implements Nlu {
           move,
           defenderBoosts: this.boostsBefore(scan, defenderMatch.at),
           attackerBoosts: this.boostsBefore(scan, attackerMatch.at),
+          weather: this.scanWeather(normalized),
           raw,
         };
       }
@@ -154,8 +160,20 @@ export class RulesNluService implements Nlu {
       move,
       defenderBoosts: this.scanBoosts(defenderPhrase),
       attackerBoosts: this.scanBoosts(attackerPhrase),
+      weather: this.scanWeather(normalized),
       raw,
     };
+  }
+
+  /** Detect a stated weather condition anywhere in the question. Word
+   * boundaries keep "sun" out of "Sunflora", "sand" out of "Sandslash", etc. */
+  private scanWeather(text: string): Weather | undefined {
+    if (/\b(?:rain|raining|drizzle|downpour)\b/.test(text)) return 'Rain';
+    if (/\b(?:sun|sunny|sunshine|harsh\s+sun|drought)\b/.test(text))
+      return 'Sun';
+    if (/\b(?:sand|sandstorm)\b/.test(text)) return 'Sand';
+    if (/\b(?:snow|snowing|hail|hailing)\b/.test(text)) return 'Snow';
+    return undefined;
   }
 
   /** Build a length-sorted dictionary from an iterable of named data. */

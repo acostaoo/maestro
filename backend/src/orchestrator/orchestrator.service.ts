@@ -77,6 +77,7 @@ export class OrchestratorService {
       },
       defender: this.defenderSide(q.defender!, q.defenderBoosts),
       move: { name: q.move! },
+      field: q.weather ? { weather: q.weather } : undefined,
     };
   }
 

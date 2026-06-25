@@ -25,4 +25,8 @@ export interface CalcResult {
   /** Type-effectiveness multiplier of the move vs the defender's typing
    * (0, 0.25, 0.5, 1, 2, 4). Omitted for status moves. */
   effectiveness?: number;
+
+  /** Damage multiplier the active weather applies to this move
+   * (0.5, 1, or 1.5). Omitted when there's no weather or it's a status move. */
+  weatherMod?: number;
 }

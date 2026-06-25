@@ -54,6 +54,7 @@ export class ScenarioService {
       defender: req.defender.name,
       move: req.move.name,
       effectiveness: outcomes[0]?.result.effectiveness,
+      weatherMod: outcomes[0]?.result.weatherMod,
       attackerBoosts: req.attacker.boosts,
       defenderBoosts: req.defender.boosts,
       outcomes,
