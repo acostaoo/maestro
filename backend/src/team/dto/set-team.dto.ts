@@ -17,7 +17,6 @@ export class TeamMemberDto {
   @IsOptional() @IsString() item?: string;
   @IsOptional() @IsString() ability?: string;
   @IsOptional() @IsString() nature?: string;
-  @IsOptional() @IsString() teraType?: string;
 
   @IsOptional() @ValidateNested() @Type(() => StatsDto) evs?: StatsDto;
   @IsOptional() @ValidateNested() @Type(() => StatsDto) ivs?: StatsDto;

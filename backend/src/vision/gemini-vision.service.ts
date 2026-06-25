@@ -24,7 +24,7 @@ const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 export class GeminiVisionService implements VisionTeamExtractor {
   private readonly logger = new Logger(GeminiVisionService.name);
 
-  async extractTeam(image: VisionImage): Promise<Team> {
+  async extractTeam(images: VisionImage[]): Promise<Team> {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new ServiceUnavailableException(
@@ -39,7 +39,9 @@ export class GeminiVisionService implements VisionTeamExtractor {
         {
           parts: [
             { text: VISION_PROMPT },
-            { inline_data: { mime_type: image.mimeType, data: image.base64 } },
+            ...images.map((image) => ({
+              inline_data: { mime_type: image.mimeType, data: image.base64 },
+            })),
           ],
         },
       ],

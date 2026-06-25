@@ -11,6 +11,11 @@ export const NLU = 'NLU';
 /** Recognized question kinds. Extend as we support more phrasings. */
 export type QuestionIntent = 'survive-check' | 'unknown';
 
+/** Stat-stage changes (e.g. Intimidate = atk -1), per stat, range -6..6. */
+export type BoostSpread = Partial<
+  Record<'atk' | 'def' | 'spa' | 'spd' | 'spe', number>
+>;
+
 /** Structured result of parsing a question. */
 export interface ParsedQuestion {
   intent: QuestionIntent;
@@ -20,6 +25,10 @@ export interface ParsedQuestion {
   attacker?: string;
   /** The move, if identified. */
   move?: string;
+  /** Stat changes on the attacker (e.g. "intimidated" → atk -1). */
+  attackerBoosts?: BoostSpread;
+  /** Stat changes on the defender. */
+  defenderBoosts?: BoostSpread;
   /** Original text, kept for narration/debugging. */
   raw: string;
   /** Why parsing failed, when intent is "unknown". */

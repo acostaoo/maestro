@@ -48,7 +48,7 @@
     <p class="team__error">{{ err }}</p>
   }
 
-  <div class="chat__log">
+  <div class="chat__log" #log>
     @if (messages().length === 0) {
       <div class="chat__empty">
         <div class="hero">
@@ -57,7 +57,7 @@
           <p>Ask a survival question in plain English &mdash; I&rsquo;ll run the calcs.</p>
         </div>
         <div class="examples">
-          @for (ex of examples; track ex) {
+          @for (ex of examples(); track ex) {
             <button type="button" class="chip" (click)="send(ex)">
               <span class="chip__spark" aria-hidden="true">&rsaquo;</span>{{ ex }}
             </button>
@@ -94,9 +94,23 @@
                   <img class="mon__sprite" [src]="m.atkSprite" alt="" />
                 }
                 <span class="mon__name">{{ m.matchup.attacker }}</span>
+                @if (boostLabel(m.matchup.attackerBoosts); as boost) {
+                  <span
+                    class="mon__boost"
+                    [attr.data-sign]="boostSign(m.matchup.attackerBoosts)"
+                    >{{ boost }}</span
+                  >
+                }
               </span>
               <span class="matchup__arrow">
                 <span class="matchup__move">{{ m.matchup.move }}</span>
+                @if (effLabel(m.matchup.effectiveness); as eff) {
+                  <span
+                    class="matchup__eff"
+                    [attr.data-eff]="m.matchup.effectiveness"
+                    >{{ eff }}</span
+                  >
+                }
                 <span class="matchup__line" aria-hidden="true">&rarr;</span>
               </span>
               <span class="mon mon--def">
@@ -104,6 +118,13 @@
                   <img class="mon__sprite" [src]="m.defSprite" alt="" />
                 }
                 <span class="mon__name">{{ m.matchup.defender }}</span>
+                @if (boostLabel(m.matchup.defenderBoosts); as boost) {
+                  <span
+                    class="mon__boost"
+                    [attr.data-sign]="boostSign(m.matchup.defenderBoosts)"
+                    >{{ boost }}</span
+                  >
+                }
               </span>
             </div>
           }
@@ -169,6 +190,7 @@
       type="text"
       name="q"
       [(ngModel)]="inputText"
+      (keydown)="onKeydown($event)"
       placeholder="can my goodra tank a draco from archaludon?"
       autocomplete="off"
     />

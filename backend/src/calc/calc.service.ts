@@ -41,6 +41,10 @@ export class CalcService {
 
     const [minDamage, maxDamage] = result.range();
     const defenderMaxHP = defender.maxHP();
+    const effectiveness =
+      move.category === 'Status'
+        ? undefined
+        : this.typeEffectiveness(move, defender);
 
     // Zero-damage moves (type immunity, status moves) make @smogon/calc throw
     // inside both desc() and kochance(), so handle them explicitly.
@@ -55,6 +59,7 @@ export class CalcService {
         defenderMaxHP,
         koChanceText: 'no damage (immune or status move)',
         koHits: 0,
+        effectiveness,
       };
     }
 
@@ -70,7 +75,21 @@ export class CalcService {
       defenderMaxHP,
       koChanceText: ko.text || 'unknown',
       koHits: ko.n,
+      effectiveness,
     };
+  }
+
+  /** Move-type effectiveness against the defender's typing (product of each). */
+  private typeEffectiveness(move: Move, defender: Pokemon): number {
+    const chart = GEN.types.get(toID(move.type));
+    if (!chart) {
+      return 1;
+    }
+    let multiplier = 1;
+    for (const type of defender.types) {
+      multiplier *= chart.effectiveness[type] ?? 1;
+    }
+    return multiplier;
   }
 
   private buildPokemon(dto: PokemonDto | undefined, role: string): Pokemon {
@@ -89,7 +108,6 @@ export class CalcService {
         item: dto.item,
         nature: dto.nature,
         status: dto.status,
-        teraType: dto.teraType,
         evs: dto.evs,
         ivs: dto.ivs,
         boosts: dto.boosts,

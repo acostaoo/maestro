@@ -1,10 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import type { ParsedQuestion } from '../nlu/nlu.interface';
 import type {
+  BoostSpread,
   ScenarioOutcome,
   ScenarioResult,
 } from '../scenario/scenario.types';
 import type { NarratedAnswer, Nlg } from './nlg.interface';
+
+type VerdictKind = 'survives' | 'risky' | 'ko';
+
+/** Display names for boost stats, e.g. atk → "Atk". */
+const STAT_LABEL: Record<keyof BoostSpread, string> = {
+  atk: 'Atk',
+  def: 'Def',
+  spa: 'SpA',
+  spd: 'SpD',
+  spe: 'Spe',
+};
 
 /**
  * Rules-based narrator. Reads a scenario fan-out and produces a spoken answer
@@ -12,14 +24,30 @@ import type { NarratedAnswer, Nlg } from './nlg.interface';
  */
 @Injectable()
 export class RulesNlgService implements Nlg {
-  narrate(question: ParsedQuestion, scenario: ScenarioResult): NarratedAnswer {
-    const { defender, attacker, move, outcomes, summary } = scenario;
-    const details = outcomes.map((o) => this.detailLine(o));
+  narrate(
+    _question: ParsedQuestion,
+    scenario: ScenarioResult,
+    baseline?: ScenarioResult,
+  ): NarratedAnswer {
+    const details = scenario.outcomes.map((o) => this.detailLine(o));
 
-    if (outcomes.length === 0) {
+    if (scenario.outcomes.length === 0) {
       return { answer: 'No matchups to evaluate.', details };
     }
 
+    if (baseline && baseline.outcomes.length > 0) {
+      return this.narrateDual(scenario, baseline, details);
+    }
+
+    return this.narrateSingle(scenario, details);
+  }
+
+  /** Original single-scenario narration (no stat changes involved). */
+  private narrateSingle(
+    scenario: ScenarioResult,
+    details: string[],
+  ): NarratedAnswer {
+    const { defender, attacker, move, outcomes, summary } = scenario;
     const worst = outcomes.reduce((a, b) =>
       b.result.maxPercent > a.result.maxPercent ? b : a,
     );
@@ -59,6 +87,78 @@ export class RulesNlgService implements Nlg {
         `Mostly — ${defender} lives most rolls, but ${setOf(worst)} ` +
         `can OHKO on a high roll (${worst.result.koChanceText}).`,
       details,
+    };
+  }
+
+  /**
+   * Compare the boosted scenario (as asked) against the neutral baseline, so
+   * the answer covers both: "Yes, if Incineroar is at −1 Atk … otherwise …".
+   */
+  private narrateDual(
+    boosted: ScenarioResult,
+    baseline: ScenarioResult,
+    details: string[],
+  ): NarratedAnswer {
+    const condition = this.boostCondition(boosted);
+    const asked = this.verdict(boosted);
+    const neutral = this.verdict(baseline);
+    const head =
+      asked.kind === 'survives' ? 'Yes' : asked.kind === 'ko' ? 'No' : 'Maybe';
+
+    return {
+      answer:
+        `${head} — ${condition}, ${asked.phrase}. ` +
+        `Otherwise at neutral, ${neutral.phrase}.`,
+      details,
+    };
+  }
+
+  /** "if Incineroar is at −1 Atk" (or both sides, when both are boosted). */
+  private boostCondition(scenario: ScenarioResult): string {
+    const parts: string[] = [];
+    const atk = this.formatBoosts(scenario.attackerBoosts);
+    const def = this.formatBoosts(scenario.defenderBoosts);
+    if (atk) parts.push(`${scenario.attacker} is at ${atk}`);
+    if (def) parts.push(`${scenario.defender} is at ${def}`);
+    return parts.length > 0
+      ? `if ${parts.join(' and ')}`
+      : 'with the stat changes';
+  }
+
+  /** Render a boost spread as "−1 Atk" / "+2 Spe, −1 Def". */
+  private formatBoosts(boosts?: BoostSpread): string | undefined {
+    if (!boosts) return undefined;
+    const parts = (Object.keys(STAT_LABEL) as Array<keyof BoostSpread>)
+      .filter((stat) => boosts[stat])
+      .map((stat) => {
+        const n = boosts[stat]!;
+        return `${n > 0 ? '+' : '−'}${Math.abs(n)} ${STAT_LABEL[stat]}`;
+      });
+    return parts.length > 0 ? parts.join(', ') : undefined;
+  }
+
+  /** A short verdict + phrase for one scenario. */
+  private verdict(scenario: ScenarioResult): {
+    kind: VerdictKind;
+    phrase: string;
+  } {
+    const { defender, summary } = scenario;
+    if (summary.maxMaxPercent < 100) {
+      const remaining = Math.round((100 - summary.maxMaxPercent) * 10) / 10;
+      return {
+        kind: 'survives',
+        phrase: `${defender} tanks it (worst case ${summary.maxMaxPercent}%, ~${remaining}% HP left)`,
+      };
+    }
+    if (summary.guaranteedOHKO) {
+      return {
+        kind: 'ko',
+        phrase: `it's a guaranteed OHKO on ${defender} (up to ${summary.maxMaxPercent}%)`,
+      };
+    }
+    return {
+      kind: 'risky',
+      phrase: `${defender} lives most rolls but can be KO'd on a high roll (up to ${summary.maxMaxPercent}%)`,
     };
   }
 

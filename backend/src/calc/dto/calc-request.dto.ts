@@ -41,9 +41,6 @@ export class PokemonDto {
   @IsOptional() @IsString() nature?: string;
   @IsOptional() @IsString() status?: string;
 
-  /** Tera type, e.g. "Fairy". Omit for non-Tera. */
-  @IsOptional() @IsString() teraType?: string;
-
   @IsOptional() @ValidateNested() @Type(() => StatsDto) evs?: StatsDto;
   @IsOptional() @ValidateNested() @Type(() => StatsDto) ivs?: StatsDto;
   @IsOptional() @ValidateNested() @Type(() => BoostsDto) boosts?: BoostsDto;

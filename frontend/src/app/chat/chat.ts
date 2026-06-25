@@ -1,6 +1,14 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import {
+  AfterViewChecked,
+  Component,
+  ElementRef,
+  OnInit,
+  ViewChild,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AskService, AskResult } from '../ask.service';
+import { AskService, AskResult, BoostSpread } from '../ask.service';
 import { SpriteService } from '../sprite.service';
 import { Team, TeamService } from '../team.service';
 
@@ -18,7 +26,14 @@ interface ChatMessage {
   details?: string[];
   error?: boolean;
   verdict?: Verdict;
-  matchup?: { defender: string; move: string; attacker: string };
+  matchup?: {
+    defender: string;
+    move: string;
+    attacker: string;
+    effectiveness?: number;
+    attackerBoosts?: BoostSpread;
+    defenderBoosts?: BoostSpread;
+  };
   atkSprite?: string;
   defSprite?: string;
   bar?: DamageBar;
@@ -30,27 +45,94 @@ interface ChatMessage {
   templateUrl: './chat.html',
   styleUrl: './chat.scss',
 })
-export class Chat implements OnInit {
+export class Chat implements OnInit, AfterViewChecked {
   private readonly ask = inject(AskService);
   private readonly sprites = inject(SpriteService);
   private readonly teamApi = inject(TeamService);
 
+  @ViewChild('log') private log?: ElementRef<HTMLDivElement>;
+
   protected readonly messages = signal<ChatMessage[]>([]);
   protected readonly loading = signal(false);
   protected inputText = '';
+
+  /** Previously sent questions, oldest first, for up/down-arrow recall. */
+  private readonly history: string[] = [];
+  /** Cursor into `history`; -1 means "not browsing" (showing live input). */
+  private historyIndex = -1;
+  /** Message+typing count last rendered, to know when to auto-scroll. */
+  private lastRenderedCount = 0;
 
   protected readonly team = signal<Team | null>(null);
   protected readonly teamSprites = signal<Record<string, string>>({});
   protected readonly importing = signal(false);
   protected readonly importError = signal<string | null>(null);
 
-  protected readonly examples = [
+  protected readonly examples = signal<string[]>([
     'can my goodra tank a draco meteor from archaludon?',
     'can my incineroar survive a draco from goodra?',
-  ];
+  ]);
 
   ngOnInit(): void {
     this.refreshTeam();
+    this.refreshSuggestions();
+  }
+
+  /** Pull team-relevant example questions for the empty-chat prompt chips. */
+  private refreshSuggestions(): void {
+    this.ask.suggestions().subscribe({
+      next: (res) => {
+        if (res.suggestions?.length) {
+          this.examples.set(res.suggestions);
+        }
+      },
+      error: () => {
+        /* keep the built-in fallbacks */
+      },
+    });
+  }
+
+  /** Keep the log pinned to the newest message as the chat grows. */
+  ngAfterViewChecked(): void {
+    const count = this.messages().length + (this.loading() ? 1 : 0);
+    if (count !== this.lastRenderedCount) {
+      this.lastRenderedCount = count;
+      this.scrollToBottom();
+    }
+  }
+
+  private scrollToBottom(): void {
+    const el = this.log?.nativeElement;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }
+
+  /** Recall earlier questions with the up/down arrows, terminal-style. */
+  protected onKeydown(event: KeyboardEvent): void {
+    if (event.key === 'ArrowUp') {
+      if (this.history.length === 0) {
+        return;
+      }
+      event.preventDefault();
+      this.historyIndex =
+        this.historyIndex === -1
+          ? this.history.length - 1
+          : Math.max(0, this.historyIndex - 1);
+      this.inputText = this.history[this.historyIndex];
+    } else if (event.key === 'ArrowDown') {
+      if (this.historyIndex === -1) {
+        return;
+      }
+      event.preventDefault();
+      if (this.historyIndex < this.history.length - 1) {
+        this.historyIndex++;
+        this.inputText = this.history[this.historyIndex];
+      } else {
+        this.historyIndex = -1;
+        this.inputText = '';
+      }
+    }
   }
 
   /** Load the currently held team and resolve its sprites. */
@@ -120,6 +202,8 @@ export class Chat implements OnInit {
 
     this.messages.update((m) => [...m, { role: 'user', text: question }]);
     this.inputText = '';
+    this.history.push(question);
+    this.historyIndex = -1;
     this.loading.set(true);
 
     this.ask.ask(question).subscribe({
@@ -179,6 +263,9 @@ export class Chat implements OnInit {
             defender: result.scenario.defender,
             move: result.scenario.move,
             attacker: result.scenario.attacker,
+            effectiveness: result.scenario.effectiveness,
+            attackerBoosts: result.scenario.attackerBoosts,
+            defenderBoosts: result.scenario.defenderBoosts,
           }
         : undefined,
       bar: summary
@@ -193,6 +280,46 @@ export class Chat implements OnInit {
 
   private clampPct(value: number): number {
     return Math.max(0, Math.min(100, Math.round(value * 10) / 10));
+  }
+
+  /** Human label for a type-effectiveness multiplier, or null when neutral. */
+  protected effLabel(effectiveness?: number): string | null {
+    if (effectiveness == null || effectiveness === 1) {
+      return null;
+    }
+    if (effectiveness === 0) return '0×';
+    if (effectiveness === 0.25) return '¼×';
+    if (effectiveness === 0.5) return '½×';
+    return `${effectiveness}×`;
+  }
+
+  /** "−1 Atk" / "+2 Spe, −1 Def", or null when there are no stat changes. */
+  protected boostLabel(boosts?: BoostSpread): string | null {
+    if (!boosts) return null;
+    const names: Record<string, string> = {
+      atk: 'Atk',
+      def: 'Def',
+      spa: 'SpA',
+      spd: 'SpD',
+      spe: 'Spe',
+    };
+    const parts = Object.keys(names)
+      .filter((stat) => boosts[stat as keyof BoostSpread])
+      .map((stat) => {
+        const n = boosts[stat as keyof BoostSpread]!;
+        return `${n > 0 ? '+' : '−'}${Math.abs(n)} ${names[stat]}`;
+      });
+    return parts.length > 0 ? parts.join(', ') : null;
+  }
+
+  /** Sign of the net stat change, for badge coloring (-1, 0, +1). */
+  protected boostSign(boosts?: BoostSpread): number {
+    if (!boosts) return 0;
+    const total = Object.values(boosts).reduce(
+      (sum, n) => sum + (n ?? 0),
+      0,
+    );
+    return Math.sign(total);
   }
 
   private verdictFor(result: AskResult, guaranteedOHKO?: boolean): Verdict {

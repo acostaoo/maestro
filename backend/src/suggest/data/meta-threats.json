@@ -1,0 +1,17 @@
+[
+  { "species": "Garchomp", "moves": ["Earthquake", "Dragon Claw", "Rock Slide"] },
+  { "species": "Sinistcha", "moves": ["Matcha Gotcha", "Shadow Ball"] },
+  { "species": "Basculegion", "moves": ["Wave Crash", "Last Respects", "Aqua Jet"] },
+  { "species": "Whimsicott", "moves": ["Moonblast", "Energy Ball"] },
+  { "species": "Kingambit", "moves": ["Kowtow Cleave", "Iron Head", "Sucker Punch"] },
+  { "species": "Staraptor", "moves": ["Brave Bird", "Close Combat", "Double-Edge"] },
+  { "species": "Incineroar", "moves": ["Flare Blitz", "Knock Off"] },
+  { "species": "Charizard", "moves": ["Heat Wave", "Solar Beam", "Air Slash"] },
+  { "species": "Raichu", "moves": ["Thunderbolt", "Grass Knot"] },
+  { "species": "Pelipper", "moves": ["Hurricane", "Weather Ball"] },
+  { "species": "Sneasler", "moves": ["Close Combat", "Dire Claw"] },
+  { "species": "Archaludon", "moves": ["Electro Shot", "Draco Meteor", "Flash Cannon"] },
+  { "species": "Grimmsnarl", "moves": ["Spirit Break", "Foul Play"] },
+  { "species": "Sylveon", "moves": ["Hyper Voice", "Mystical Fire"] },
+  { "species": "Swampert", "moves": ["Earthquake", "Liquidation", "Ice Punch"] }
+]

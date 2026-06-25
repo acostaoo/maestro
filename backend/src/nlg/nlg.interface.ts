@@ -17,5 +17,14 @@ export interface NarratedAnswer {
 }
 
 export interface Nlg {
-  narrate(question: ParsedQuestion, scenario: ScenarioResult): NarratedAnswer;
+  /**
+   * Narrate a scenario. When `baseline` is given (the same matchup run with
+   * the stat changes removed), the answer compares the boosted case against
+   * neutral, e.g. "Yes, if Incineroar is at −1 Atk… otherwise…".
+   */
+  narrate(
+    question: ParsedQuestion,
+    scenario: ScenarioResult,
+    baseline?: ScenarioResult,
+  ): NarratedAnswer;
 }

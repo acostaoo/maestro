@@ -8,7 +8,6 @@ import type { Team, TeamMember } from './team.types';
  *   Nickname (Goodra-Hisui) (M) @ Assault Vest
  *   Ability: Sap Sipper
  *   Level: 50
- *   Tera Type: Steel
  *   EVs: 252 HP / 4 Def / 252 SpD
  *   Calm Nature
  *   IVs: 0 Atk
@@ -74,9 +73,6 @@ function parseBlock(block: string): TeamMember | undefined {
         break;
       case 'level':
         member.level = Number(value) || undefined;
-        break;
-      case 'tera type':
-        member.teraType = value;
         break;
       case 'evs':
         member.evs = parseStats(value);

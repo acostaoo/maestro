@@ -21,4 +21,8 @@ export interface CalcResult {
 
   /** Number of hits to KO (n in nHKO), when determinable. */
   koHits?: number;
+
+  /** Type-effectiveness multiplier of the move vs the defender's typing
+   * (0, 0.25, 0.5, 1, 2, 4). Omitted for status moves. */
+  effectiveness?: number;
 }

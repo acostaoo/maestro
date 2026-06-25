@@ -35,7 +35,6 @@ export class SideDto {
   @IsOptional() @IsString() item?: string;
   @IsOptional() @IsString() nature?: string;
   @IsOptional() @IsString() status?: string;
-  @IsOptional() @IsString() teraType?: string;
 
   @IsOptional() @ValidateNested() @Type(() => StatsDto) evs?: StatsDto;
   @IsOptional() @ValidateNested() @Type(() => StatsDto) ivs?: StatsDto;

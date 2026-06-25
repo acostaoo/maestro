@@ -53,6 +53,9 @@ export class ScenarioService {
       attacker: req.attacker.name,
       defender: req.defender.name,
       move: req.move.name,
+      effectiveness: outcomes[0]?.result.effectiveness,
+      attackerBoosts: req.attacker.boosts,
+      defenderBoosts: req.defender.boosts,
       outcomes,
       summary: this.summarize(outcomes),
     };
@@ -65,21 +68,25 @@ export class ScenarioService {
       const speciesSets = this.sets.resolve(side.name);
       return speciesSets.sets.map((set) => ({
         label: set.name,
-        pokemon: this.setToPokemon(side.name, set),
+        pokemon: this.setToPokemon(side.name, set, side.boosts),
       }));
     }
     return [{ label: 'custom', pokemon: this.sideToPokemon(side) }];
   }
 
-  private setToPokemon(species: string, set: PokemonSet): PokemonDto {
+  private setToPokemon(
+    species: string,
+    set: PokemonSet,
+    boosts?: SideDto['boosts'],
+  ): PokemonDto {
     return {
       name: species,
       ability: set.ability,
       item: set.item,
       nature: set.nature,
-      teraType: set.teraType,
       evs: set.evs,
       ivs: set.ivs,
+      boosts,
     };
   }
 
@@ -91,7 +98,6 @@ export class ScenarioService {
       item: side.item,
       nature: side.nature,
       status: side.status,
-      teraType: side.teraType,
       evs: side.evs,
       ivs: side.ivs,
       boosts: side.boosts,

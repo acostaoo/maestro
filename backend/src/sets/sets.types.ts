@@ -10,7 +10,6 @@ export interface PokemonSet {
   item?: string;
   ability?: string;
   nature?: string;
-  teraType?: string;
   evs?: StatSpread;
   ivs?: StatSpread;
   moves?: string[];

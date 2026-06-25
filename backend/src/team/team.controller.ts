@@ -9,7 +9,7 @@ import {
   Put,
   Body,
 } from '@nestjs/common';
-import { VISION, type VisionTeamExtractor } from '../vision/vision.interface';
+import { VISION, type VisionImage, type VisionTeamExtractor } from '../vision/vision.interface';
 import { ImportScreenshotDto } from './dto/import-screenshot.dto';
 import { ImportTeamDto } from './dto/import-team.dto';
 import { SetTeamDto } from './dto/set-team.dto';
@@ -40,8 +40,8 @@ export class TeamController {
 
   @Post('import-screenshot')
   async importScreenshot(@Body() body: ImportScreenshotDto): Promise<Team> {
-    const { base64, mimeType } = this.decodeImage(body);
-    const extracted = await this.vision.extractTeam({ base64, mimeType });
+    const images = this.decodeImages(body);
+    const extracted = await this.vision.extractTeam(images);
     if (extracted.members.length === 0) {
       throw new BadRequestException(
         'No Pokémon were recognized in that screenshot. Try a clearer team-preview shot.',
@@ -50,16 +50,27 @@ export class TeamController {
     return this.team.setTeam(extracted);
   }
 
+  /**
+   * Collect every provided screenshot — the single `image` and/or the `images`
+   * slides (spreads + moves/items) — as raw base64 + MIME type.
+   */
+  private decodeImages(body: ImportScreenshotDto): VisionImage[] {
+    const raw = [...(body.image ? [body.image] : []), ...(body.images ?? [])];
+    if (raw.length === 0) {
+      throw new BadRequestException(
+        'Provide at least one screenshot via "image" or "images".',
+      );
+    }
+    return raw.map((data) => this.decodeImage(data, body.mimeType));
+  }
+
   /** Split an optional `data:` URL prefix into raw base64 + a MIME type. */
-  private decodeImage(body: ImportScreenshotDto): {
-    base64: string;
-    mimeType: string;
-  } {
-    const match = body.image.match(/^data:(image\/[\w.+-]+);base64,(.*)$/s);
+  private decodeImage(image: string, fallbackMime?: string): VisionImage {
+    const match = image.match(/^data:(image\/[\w.+-]+);base64,(.*)$/s);
     if (match) {
       return { mimeType: match[1], base64: match[2] };
     }
-    return { mimeType: body.mimeType ?? 'image/png', base64: body.image };
+    return { mimeType: fallbackMime ?? 'image/png', base64: image };
   }
 
   @Get(':name')

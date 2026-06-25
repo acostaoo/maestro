@@ -548,6 +548,24 @@
 
   &--def .mon__name { color: var(--accent); }
   &--atk .mon__name { color: var(--bad); }
+
+  &__boost {
+    font-size: 0.6rem;
+    font-weight: 800;
+    line-height: 1;
+    padding: 2px 5px;
+    border-radius: 999px;
+    white-space: nowrap;
+    flex: 0 0 auto;
+    color: #fff;
+    background: var(--muted);
+
+    /* net stat drop (e.g. intimidated −1 Atk) */
+    &[data-sign="-1"] { background: var(--accent); }
+
+    /* net stat boost */
+    &[data-sign="1"] { background: var(--bad); }
+  }
 }
 
 .matchup__arrow {
@@ -564,6 +582,34 @@
   font-weight: 700;
   color: var(--accent-2);
   white-space: nowrap;
+}
+
+.matchup__eff {
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 1px 5px;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--muted);
+
+  /* super effective (2x, 4x) */
+  &[data-eff="2"],
+  &[data-eff="4"] {
+    background: var(--bad);
+  }
+
+  /* resisted (0.5x, 0.25x) */
+  &[data-eff="0.5"],
+  &[data-eff="0.25"] {
+    background: var(--accent);
+  }
+
+  /* immune */
+  &[data-eff="0"] {
+    background: var(--muted);
+  }
 }
 
 .matchup__line {

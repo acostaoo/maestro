@@ -11,7 +11,6 @@ export interface TeamMember {
   item?: string;
   ability?: string;
   nature?: string;
-  teraType?: string;
   evs?: StatSpread;
   ivs?: StatSpread;
   moves?: string[];

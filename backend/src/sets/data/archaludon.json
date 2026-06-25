@@ -6,7 +6,6 @@
       "item": "Choice Specs",
       "ability": "Stamina",
       "nature": "Modest",
-      "teraType": "Grass",
       "evs": { "hp": 4, "spa": 252, "spe": 252 },
       "moves": ["Draco Meteor", "Flash Cannon", "Electro Shot", "Body Press"],
       "usage": 0.35
@@ -16,7 +15,6 @@
       "item": "Assault Vest",
       "ability": "Stamina",
       "nature": "Modest",
-      "teraType": "Fairy",
       "evs": { "hp": 252, "spa": 196, "spd": 60 },
       "moves": ["Electro Shot", "Flash Cannon", "Draco Meteor", "Body Press"],
       "usage": 0.2

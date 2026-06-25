@@ -26,7 +26,7 @@ const DEFAULT_MODEL = 'gpt-4o-mini';
 export class OpenAiVisionService implements VisionTeamExtractor {
   private readonly logger = new Logger(OpenAiVisionService.name);
 
-  async extractTeam(image: VisionImage): Promise<Team> {
+  async extractTeam(images: VisionImage[]): Promise<Team> {
     const baseUrl = (process.env.OPENAI_BASE_URL || DEFAULT_BASE_URL).replace(
       /\/+$/,
       '',
@@ -42,7 +42,6 @@ export class OpenAiVisionService implements VisionTeamExtractor {
 
     const model = process.env.OPENAI_VISION_MODEL || DEFAULT_MODEL;
     const url = `${baseUrl}/chat/completions`;
-    const dataUrl = `data:${image.mimeType};base64,${image.base64}`;
     const body = {
       model,
       messages: [
@@ -50,7 +49,12 @@ export class OpenAiVisionService implements VisionTeamExtractor {
           role: 'user',
           content: [
             { type: 'text', text: VISION_PROMPT },
-            { type: 'image_url', image_url: { url: dataUrl } },
+            ...images.map((image) => ({
+              type: 'image_url',
+              image_url: {
+                url: `data:${image.mimeType};base64,${image.base64}`,
+              },
+            })),
           ],
         },
       ],

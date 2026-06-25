@@ -9,6 +9,7 @@ import { NluModule } from './nlu/nlu.module';
 import { NlgModule } from './nlg/nlg.module';
 import { TeamModule } from './team/team.module';
 import { OrchestratorModule } from './orchestrator/orchestrator.module';
+import { SuggestModule } from './suggest/suggest.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { OrchestratorModule } from './orchestrator/orchestrator.module';
     NlgModule,
     TeamModule,
     OrchestratorModule,
+    SuggestModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -7,7 +7,6 @@ export interface TeamMember {
   item?: string;
   ability?: string;
   nature?: string;
-  teraType?: string;
   moves?: string[];
 }
 

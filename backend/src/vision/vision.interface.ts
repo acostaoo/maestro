@@ -20,6 +20,10 @@ export interface VisionImage {
 }
 
 export interface VisionTeamExtractor {
-  /** Reads a team-preview screenshot and returns the team it depicts. */
-  extractTeam(image: VisionImage): Promise<Team>;
+  /**
+   * Reads one or more team-preview screenshots (e.g. the spreads slide and the
+   * moves/items slide) and returns the single team they depict, merged by
+   * species across slides.
+   */
+  extractTeam(images: VisionImage[]): Promise<Team>;
 }
