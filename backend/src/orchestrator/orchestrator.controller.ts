@@ -8,7 +8,7 @@ export class OrchestratorController {
   constructor(private readonly orchestrator: OrchestratorService) {}
 
   @Post()
-  ask(@Body() body: AskRequestDto): AskResult {
+  async ask(@Body() body: AskRequestDto): Promise<AskResult> {
     return this.orchestrator.ask(body.text);
   }
 }

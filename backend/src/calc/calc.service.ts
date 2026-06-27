@@ -30,7 +30,7 @@ export class CalcService {
     const move = this.buildMove(req.move);
     const field = this.buildField(req.field);
 
-    let result;
+    let result: CalcResult|any;
     try {
       result = calculate(GEN, attacker, defender, move, field);
     } catch (err) {

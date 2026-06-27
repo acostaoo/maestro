@@ -24,10 +24,10 @@ export class TeamService {
     return this.http.get<Team>(`${this.base}/team`);
   }
 
-  /** Send a game screenshot (data URL or raw base64) to be read into a team. */
-  importScreenshot(image: string, mimeType: string): Observable<Team> {
+  /** Send multiple game screenshots (e.g. stats + moves) to be read into a team. */
+  importScreenshots(images: string[], mimeType: string): Observable<Team> {
     return this.http.post<Team>(`${this.base}/team/import-screenshot`, {
-      image,
+      images,
       mimeType,
     });
   }

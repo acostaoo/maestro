@@ -1,20 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { Generations, toID } from '@smogon/calc';
 import type { TypeName } from '@smogon/calc/dist/data/interface';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { FormatService } from '../format/format.service';
+import { SetsRepository } from '../sets/sets.repository';
 import { TeamService } from '../team/team.service';
 import type { MetaThreat, Suggestion } from './suggest.types';
 
-/** Gen 9 (Scarlet/Violet) — matches the rest of the calc stack. */
+/** Gen 9 — matches the rest of the calc stack. */
 const GEN = Generations.get(9);
-
-/** Shown when there's no team yet (so the chips are never empty). */
-const DEFAULT_QUESTIONS = [
-  'can my incineroar tank an earthquake from garchomp?',
-  'can my pelipper tank a thunderbolt from raichu?',
-];
 
 /**
  * Generates team-relevant example questions. It pairs each of the user's
@@ -23,14 +16,16 @@ const DEFAULT_QUESTIONS = [
  * matchups (super-effective first) as ready-to-ask questions.
  */
 @Injectable()
-export class SuggestService {
+export class SuggestService implements OnModuleInit {
   private readonly logger = new Logger(SuggestService.name);
-  private readonly threats: MetaThreat[];
+  private threats: MetaThreat[] = [];
 
   constructor(
     private readonly team: TeamService,
-    private readonly format: FormatService,
-  ) {
+    private readonly sets: SetsRepository,
+  ) {}
+
+  onModuleInit(): void {
     this.threats = this.loadThreats();
   }
 
@@ -38,7 +33,7 @@ export class SuggestService {
   suggest(limit = 5): string[] {
     const members = this.team.getTeam().members;
     if (members.length === 0 || this.threats.length === 0) {
-      return DEFAULT_QUESTIONS;
+      return [];
     }
 
     const candidates: Suggestion[] = [];
@@ -119,9 +114,6 @@ export class SuggestService {
    * instead of always showing the single scariest hit.
    */
   private pick(candidates: Suggestion[], limit: number): string[] {
-    if (candidates.length === 0) {
-      return DEFAULT_QUESTIONS;
-    }
 
     // Prefer the genuinely scary (super-effective) matchups; fall back to all
     // if a team doesn't have enough of them to fill the chips.
@@ -164,19 +156,28 @@ export class SuggestService {
   }
 
   private loadThreats(): MetaThreat[] {
-    try {
-      const file = join(__dirname, 'data', 'meta-threats.json');
-      const parsed = JSON.parse(readFileSync(file, 'utf-8')) as MetaThreat[];
-      if (!Array.isArray(parsed)) {
-        return [];
-      }
-      // Never suggest a Pokémon that isn't legal in the active regulation.
-      return parsed.filter((t) => this.format.isLegal(t.species));
-    } catch (err) {
-      this.logger.warn(
-        `Could not load meta threats: ${(err as Error).message}`,
-      );
+    const all = this.sets.all();
+    if (all.length === 0) {
+      this.logger.warn('No sets loaded in SetsRepository — threat list empty.');
       return [];
     }
+
+    return all
+      .map((s) => {
+        // Collect all moves across every stored set, preserving order of first
+        // appearance so the most-used set's moves come first.
+        const seen = new Set<string>();
+        const moves: string[] = [];
+        for (const set of s.sets) {
+          for (const m of set.moves ?? []) {
+            const id = toID(m);
+            if (!seen.has(id)) {
+              seen.add(id);
+              moves.push(m);
+            }
+          }
+        }
+        return { species: s.species, moves } satisfies MetaThreat;
+      });
   }
 }

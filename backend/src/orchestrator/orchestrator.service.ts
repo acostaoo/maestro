@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import { NLG, type Nlg } from '../nlg/nlg.interface';
 import { NLU, type Nlu, type ParsedQuestion } from '../nlu/nlu.interface';
 import type {
@@ -6,6 +6,7 @@ import type {
   SideDto,
 } from '../scenario/dto/scenario-request.dto';
 import { ScenarioService } from '../scenario/scenario.service';
+import { SetsIngestionService } from '../sets/sets-ingestion.service';
 import { SetsService } from '../sets/sets.service';
 import { TeamService } from '../team/team.service';
 import type { AskResult } from './orchestrator.types';
@@ -17,22 +18,38 @@ import type { AskResult } from './orchestrator.types';
  */
 @Injectable()
 export class OrchestratorService {
+  private readonly logger = new Logger(OrchestratorService.name);
+
   constructor(
     @Inject(NLU) private readonly nlu: Nlu,
     @Inject(NLG) private readonly nlg: Nlg,
     private readonly scenario: ScenarioService,
     private readonly sets: SetsService,
     private readonly team: TeamService,
+    private readonly ingestion: SetsIngestionService,
   ) {}
 
-  ask(text: string): AskResult {
-    const understood = this.nlu.parse(text);
+  async ask(text: string): Promise<AskResult> {
+    const understood = await this.nlu.parse(text);
     if (understood.intent !== 'survive-check') {
       throw new BadRequestException(
         understood.reason ?? "Sorry, I couldn't understand that question.",
       );
     }
 
+    // If the attacker has no cached sets, fetch them now so the scenario can
+    // fan out across real Pikalytics builds rather than a single default build.
+    if (understood.attacker && !this.sets.hasSets(understood.attacker)) {
+      await this.ingestion
+        .ingestOne(understood.attacker)
+        .catch((err: Error) =>
+          this.logger.warn(
+            `On-demand ingest for ${understood.attacker} failed: ${err.message}`,
+          ),
+        );
+    }
+
+    // Build the request after any on-demand ingestion so hasSets() is fresh.
     const request = this.toScenarioRequest(understood);
     const scenario = this.scenario.run(request);
 
@@ -41,7 +58,11 @@ export class OrchestratorService {
     const baseline = this.hasBoosts(request)
       ? this.scenario.run(this.withoutBoosts(request))
       : undefined;
-    const { answer, details } = this.nlg.narrate(understood, scenario, baseline);
+    const { answer, details } = await this.nlg.narrate(
+      understood,
+      scenario,
+      baseline,
+    );
 
     return { answer, details, understood, scenario };
   }
@@ -98,4 +119,3 @@ export class OrchestratorService {
     };
   }
 }
-

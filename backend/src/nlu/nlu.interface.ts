@@ -41,5 +41,5 @@ export interface ParsedQuestion {
 }
 
 export interface Nlu {
-  parse(text: string): ParsedQuestion;
+  parse(text: string): ParsedQuestion | Promise<ParsedQuestion>;
 }

@@ -75,6 +75,9 @@ export class TeamController {
 
   @Get(':name')
   member(@Param('name') name: string): TeamMember {
+    if (name === 'import-screenshot') {
+      throw new BadRequestException('Use POST to import screenshots.');
+    }
     const found = this.team.findMember(name);
     if (!found) {
       throw new NotFoundException(`"${name}" is not on the current team.`);

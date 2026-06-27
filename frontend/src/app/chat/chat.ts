@@ -4,6 +4,7 @@ import {
   ElementRef,
   OnInit,
   ViewChild,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -81,10 +82,10 @@ export class Chat implements OnInit, AfterViewChecked {
   protected readonly importing = signal(false);
   protected readonly importError = signal<string | null>(null);
 
-  protected readonly examples = signal<string[]>([
-    'can my goodra tank a draco meteor from archaludon?',
-    'can my incineroar survive a draco from goodra?',
-  ]);
+  protected readonly examples = signal<string[]>([]);
+  protected readonly inputPlaceholder = computed(
+    () => this.examples()[0] ?? 'Ask a survival question…',
+  );
 
   ngOnInit(): void {
     this.refreshTeam();
@@ -167,44 +168,54 @@ export class Chat implements OnInit, AfterViewChecked {
     }
   }
 
-  /** Read a chosen screenshot file and send it to the vision importer. */
+  /** Read chosen screenshot files and send them to the vision importer. */
   onScreenshot(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
+    const files = Array.from(input.files || []);
     input.value = '';
-    if (!file || this.importing()) {
+    if (files.length === 0 || this.importing()) {
       return;
     }
 
     this.importError.set(null);
     this.importing.set(true);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      this.teamApi.importScreenshot(dataUrl, file.type || 'image/png').subscribe({
-        next: (team) => {
-          this.applyTeam(team);
-          this.importing.set(false);
-          const count = team.members.length;
-          this.messages.update((m) => [
-            ...m,
-            {
-              role: 'bot',
-              text: `Loaded ${count} Pok\u00e9mon from your screenshot. Ask away \u2014 "my <mon>" now uses this team.`,
-            },
-          ]);
-        },
-        error: (err: unknown) => {
-          this.importing.set(false);
-          this.importError.set(this.errorMessage(err));
-        },
+
+    const promises = files.map((file) => {
+      return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject();
+        reader.readAsDataURL(file);
       });
-    };
-    reader.onerror = () => {
-      this.importing.set(false);
-      this.importError.set('Could not read that image file.');
-    };
-    reader.readAsDataURL(file);
+    });
+
+    Promise.all(promises)
+      .then((dataUrls) => {
+        this.teamApi
+          .importScreenshots(dataUrls, files[0].type || 'image/png')
+          .subscribe({
+            next: (team) => {
+              this.applyTeam(team);
+              this.importing.set(false);
+              const count = team.members.length;
+              this.messages.update((m) => [
+                ...m,
+                {
+                  role: 'bot',
+                  text: `Loaded ${count} Pok\u00e9mon from your ${files.length} screenshots. Ask away \u2014 "my <mon>" now uses this team.`,
+                },
+              ]);
+            },
+            error: (err: unknown) => {
+              this.importing.set(false);
+              this.importError.set(this.errorMessage(err));
+            },
+          });
+      })
+      .catch(() => {
+        this.importing.set(false);
+        this.importError.set('Could not read one or more image files.');
+      });
   }
 
   send(text?: string): void {
@@ -288,7 +299,7 @@ export class Chat implements OnInit, AfterViewChecked {
       role: 'bot',
       text: result.answer,
       details: result.details,
-      verdict: this.verdictFor(result, summary?.guaranteedOHKO),
+      verdict: this.verdictFor(result),
       weather: result.understood?.weather,
       matchup: result.scenario
         ? {
@@ -391,21 +402,25 @@ export class Chat implements OnInit, AfterViewChecked {
     return Math.sign(total);
   }
 
-  private verdictFor(result: AskResult, guaranteedOHKO?: boolean): Verdict {
+  private verdictFor(result: AskResult): Verdict {
+    const summary = result.scenario?.summary;
     const weather = result.understood?.weather;
-    // Strip a leading weather scene-setter ("In the rain, yes — …") so the
-    // yes/no read isn't fooled by the prefix.
+
+    if (summary) {
+      // Use the actual calc numbers — immune to NLG phrasing differences.
+      if (summary.guaranteedOHKO) return 'ko';
+      if (summary.possibleOHKO) return 'risky';
+      // Every roll across every set leaves the defender alive.
+      return weather ? 'situational' : 'survives';
+    }
+
+    // No calc data (shouldn't happen in normal flow) — fall back to text.
     const head = result.answer
       .trim()
       .toLowerCase()
       .replace(/^in the (rain|sun|sandstorm|snow),\s*/, '');
-    if (head.startsWith('no') || guaranteedOHKO) {
-      return 'ko';
-    }
-    if (head.startsWith('yes')) {
-      // A clean survival that only holds because of the stated weather.
-      return weather ? 'situational' : 'survives';
-    }
+    if (head.startsWith('no')) return 'ko';
+    if (head.startsWith('yes')) return weather ? 'situational' : 'survives';
     return 'risky';
   }
 

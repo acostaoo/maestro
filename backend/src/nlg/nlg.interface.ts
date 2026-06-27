@@ -26,5 +26,5 @@ export interface Nlg {
     question: ParsedQuestion,
     scenario: ScenarioResult,
     baseline?: ScenarioResult,
-  ): NarratedAnswer;
+  ): NarratedAnswer | Promise<NarratedAnswer>;
 }

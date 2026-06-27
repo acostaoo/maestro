@@ -29,3 +29,7 @@ coverage/
 
 # Persisted user team (runtime data, not source)
 backend/data/
+
+#persisted top threats data 
+backend/src/threats/top-threats.json
+backend/src/sets/data/

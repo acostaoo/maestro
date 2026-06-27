@@ -107,8 +107,8 @@ export class RulesNluService implements Nlu {
       const mons = this.matchAll(scan, this.species);
       const defenderMatch = mons[0];
       const attackerMatch = mons[1];
-      const defender = defenderMatch?.name;
-      const attacker = attackerMatch?.name;
+      const defender = defenderMatch!.name;
+      const attacker = attackerMatch!.name;
       if (defender && attacker && move) {
         return {
           intent: 'survive-check',

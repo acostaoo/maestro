@@ -29,6 +29,7 @@ export class SideDto {
   @IsOptional() @IsBoolean() useSets?: boolean;
 
   /** Defaults to 50 (VGC). Only used for an explicit (non-set) build. */
+  //ALWAYS 50
   @IsOptional() @IsInt() @Min(1) @Max(100) level?: number;
 
   @IsOptional() @IsString() ability?: string;
@@ -37,6 +38,7 @@ export class SideDto {
   @IsOptional() @IsString() status?: string;
 
   @IsOptional() @ValidateNested() @Type(() => StatsDto) evs?: StatsDto;
+  //In pokemon champions, IVs are always max value.
   @IsOptional() @ValidateNested() @Type(() => StatsDto) ivs?: StatsDto;
   @IsOptional() @ValidateNested() @Type(() => BoostsDto) boosts?: BoostsDto;
 }

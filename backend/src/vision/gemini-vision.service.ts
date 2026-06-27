@@ -4,6 +4,7 @@ import {
   ServiceUnavailableException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { FormatService } from '../format/format.service';
 import type { Team } from '../team/team.types';
 import type { VisionImage, VisionTeamExtractor } from './vision.interface';
 import {
@@ -24,6 +25,8 @@ const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 export class GeminiVisionService implements VisionTeamExtractor {
   private readonly logger = new Logger(GeminiVisionService.name);
 
+  constructor(private readonly format: FormatService) {}
+
   async extractTeam(images: VisionImage[]): Promise<Team> {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -32,15 +35,18 @@ export class GeminiVisionService implements VisionTeamExtractor {
       );
     }
 
+    const legalList = this.format.getRegulation().legal.join(', ');
+    const systemPrompt = `${VISION_PROMPT}\n\nLEGAL SPECIES LIST (Only choose from these): ${legalList}`;
+
     const model = process.env.GEMINI_VISION_MODEL || DEFAULT_MODEL;
     const url = `${API_BASE}/${model}:generateContent?key=${apiKey}`;
     const body = {
       contents: [
         {
           parts: [
-            { text: VISION_PROMPT },
+            { text: systemPrompt },
             ...images.map((image) => ({
-              inline_data: { mime_type: image.mimeType, data: image.base64 },
+              inlineData: { mimeType: image.mimeType, data: image.base64 },
             })),
           ],
         },

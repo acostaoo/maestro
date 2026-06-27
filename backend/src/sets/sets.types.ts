@@ -22,3 +22,29 @@ export interface SpeciesSets {
   species: string;
   sets: PokemonSet[];
 }
+
+/** One move/item/ability/nature entry with its Pikalytics usage percentage. */
+export interface UsageStat {
+  name: string;
+  usage: number;
+}
+
+/** One EV spread entry with usage percentage, stored in tailormade files. */
+export interface TailorMadeSpread extends StatSpread {
+  usage: number;
+}
+
+/**
+ * Raw Pikalytics usage data for a species.
+ * Written as {species}.json by the ingestion service.
+ * Moves/items/natures filtered to >= 10% usage; spreads limited to #1 spread.
+ */
+export interface TailorMadeData {
+  species: string;
+  base_stats?: StatSpread;
+  moves: UsageStat[];
+  items: UsageStat[];
+  abilities: UsageStat[];
+  natures: UsageStat[];
+  spreads: TailorMadeSpread[];
+}

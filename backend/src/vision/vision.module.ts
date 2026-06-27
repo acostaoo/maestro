@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { FormatModule } from '../format/format.module';
 import { GeminiVisionService } from './gemini-vision.service';
 import { OpenAiVisionService } from './openai-vision.service';
 import { VISION, type VisionTeamExtractor } from './vision.interface';
@@ -36,6 +37,7 @@ function selectVision(
 }
 
 @Module({
+  imports: [FormatModule],
   providers: [
     GeminiVisionService,
     OpenAiVisionService,

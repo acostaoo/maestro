@@ -4,6 +4,7 @@ import {
   ServiceUnavailableException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { FormatService } from '../format/format.service';
 import type { Team } from '../team/team.types';
 import type { VisionImage, VisionTeamExtractor } from './vision.interface';
 import { VISION_PROMPT, parseTeamFromJson } from './vision.prompt';
@@ -26,6 +27,8 @@ const DEFAULT_MODEL = 'gpt-4o-mini';
 export class OpenAiVisionService implements VisionTeamExtractor {
   private readonly logger = new Logger(OpenAiVisionService.name);
 
+  constructor(private readonly format: FormatService) {}
+
   async extractTeam(images: VisionImage[]): Promise<Team> {
     const baseUrl = (process.env.OPENAI_BASE_URL || DEFAULT_BASE_URL).replace(
       /\/+$/,
@@ -40,6 +43,9 @@ export class OpenAiVisionService implements VisionTeamExtractor {
       );
     }
 
+    const legalList = this.format.getRegulation().legal.join(', ');
+    const systemPrompt = `${VISION_PROMPT}\n\nLEGAL SPECIES LIST (Only choose from these): ${legalList}`;
+
     const model = process.env.OPENAI_VISION_MODEL || DEFAULT_MODEL;
     const url = `${baseUrl}/chat/completions`;
     const body = {
@@ -48,7 +54,7 @@ export class OpenAiVisionService implements VisionTeamExtractor {
         {
           role: 'user',
           content: [
-            { type: 'text', text: VISION_PROMPT },
+            { type: 'text', text: systemPrompt },
             ...images.map((image) => ({
               type: 'image_url',
               image_url: {

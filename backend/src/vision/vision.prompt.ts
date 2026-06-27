@@ -1,4 +1,5 @@
 import { UnprocessableEntityException } from '@nestjs/common';
+import { toID } from '@smogon/calc';
 import type { Team, TeamMember } from '../team/team.types';
 
 /**
@@ -10,58 +11,31 @@ import type { Team, TeamMember } from '../team/team.types';
 
 /** The instruction sent to every vision model. */
 export const VISION_PROMPT = [
-  'You are reading screenshots from a Pokémon game (VGC Doubles, Level 50',
-  'competitive, Regulation M-B). This format uses MEGA EVOLUTION.',
+  'You are a professional Pokémon VGC data extractor for "Pokémon Champions" (Level 50, Gen 9 Regulation M-B).',
+  'You will receive TWO screenshots of the same team, as of now in latin american spanish that will be required to be translated to english. Your task is to merge them into a perfect JSON team representation.',
   '',
-  'You may receive ONE or TWO screenshots of the SAME team. The team preview is',
-  'split across two slides; merge them BY SPECIES into a single team:',
-  '  • SPREADS slide: a stats / summary screen ("Características" in Spanish)',
-  '    showing the team as a grid of stat tables with EVs and natures.',
-  '  • DETAILS slide: shows each Pokémon\'s held item, ability and moves (and any',
-  '    other text details).',
-  'A plain team-preview / rental list (just up to 6 icons) may also appear; take',
-  'only the species names from it.',
+  '1. IDENTIFICATION (CRITICAL):',
+  '   - IGNORE NICKNAMES. Pokémon in this app often have custom nicknames.',
+  '   - Identify the official SPECIES by looking at the 3D sprite, their types, and their moves.',
+  '   - For regional forms, you MUST use the suffix: "Goodra-Hisui", "Ursaluna-Bloodmoon", "Ogerpon-Wellspring", "Urshifu-Rapid-Strike", etc.',
+  '   - If a Pokémon is holding a Mega Stone, append "-Mega" (e.g., "Venusaur-Mega").',
   '',
-  'On the SPREADS slide:',
-  '  - Stat rows are labelled in Spanish: PS=hp, Ataque=atk, Defensa=def,',
-  '    "At. Esp."=spa, "Def. Esp."=spd, Velocidad=spe.',
-  '  - Each stat row shows TWO numbers: the large left number is the final',
-  '    in-game stat (ignore it), and the smaller second number is the trained',
-  '    EV for that stat — read that into "evs". EVs range 0–252 per stat.',
-  '  - A red up-arrow on a stat name = nature-boosted stat; a blue down-arrow',
-  '    = nature-lowered stat. Use that pair to name the "nature" (e.g.',
-  '    +atk/-spa = Adamant, +spa/-atk = Modest, +def/-atk = Bold,',
-  '    +spd/-spa = Careful, +spe/-spa = Timid). Omit "nature" if no arrows.',
-  '  - The icons next to each name are the gender symbol and the Pokémon\'s',
-  '    TYPES — they are not a stat or a field to record. Ignore them entirely.',
+  '2. SLIDE 1: STATS & EVS ("Características" in Spanish):',
+  '   - This slide shows a grid of stat tables.',
+  '   - PS = HP, Ataque = Atk, Defensa = Def, At. Esp. = SpA, Def. Esp. = SpD, Velocidad = Spe.',
+  '   - Each row has two numbers. The SMALLER, second number is the EV (0-252). Read this into the "evs" field.',
+  '   - NATURE: Look for colored arrows on stat names. Red up-arrow = +10%, Blue down-arrow = -10%. Map the pair to the Nature name (e.g., +Atk/-SpA = Adamant).',
   '',
-  'On the DETAILS slide:',
-  '  - Read each Pokémon\'s held "item", "ability" and "moves".',
+  '3. SLIDE 2: DETAILS (Moves, Item, Ability):',
+  '   - Read the held Item, Ability, and the 4 Moves.',
+  '   - Use official English names for everything.',
   '',
-  'When you have both slides, combine the spread from one and the',
-  'item/ability/moves from the other for the SAME species into one member.',
+  '4. MERGING:',
+  '   - Merge data from both slides for the same Pokémon based on their position or 3D model.',
   '',
-  'Extract every Pokémon you can see and return ONLY JSON matching this shape:',
-  '{ "name"?: string, "members": [ { "species": string, "item"?: string,',
-  '  "ability"?: string, "nature"?: string, "moves"?: string[],',
-  '  "evs"?: { "hp"?: number, "atk"?: number, "def"?: number, "spa"?: number,',
-  '  "spd"?: number, "spe"?: number } } ] }',
-  'Rules:',
-  '- Use official English species names in Pokémon Showdown form, e.g.',
-  '  "Goodra-Hisui", "Ogerpon-Wellspring", "Urshifu-Rapid-Strike". For a',
-  '  regional form, append the suffix (-Hisui, -Alola, -Galar, -Paldea). Note',
-  '  Hisuian Goodra is Steel/Dragon, so a Goodra showing a Steel type is',
-  '  "Goodra-Hisui".',
-  '- Mega Evolutions exist in this format: if a Pokémon is shown Mega-Evolved or',
-  '  holding a Mega Stone, append "-Mega" (or "-Mega-X"/"-Mega-Y" for Charizard',
-  '  and Mewtwo), e.g. "Venusaur-Mega", "Charizard-Mega-Y".',
-  '- "item" is the held item name if a held-item icon/label is visible, else omit.',
-  '- "moves" are the official English move names if any are visible, else omit.',
-  '- "evs" only from the spreads slide; omit when EVs are not visible (e.g. a',
-  '  plain team-preview or the details slide). Never invent EVs/IVs.',
-  '- Omit "ability" and "nature" unless clearly shown.',
-  '- If a field is uncertain, omit it rather than guessing.',
-  '- Output raw JSON only — no markdown fences, no commentary.',
+  'Output ONLY raw JSON matching this schema:',
+  '{ "members": [ { "species": string, "item"?: string, "ability": string, "nature"?: string, "moves"?: string[], "evs"?: { "hp"?: number, "atk"?: number, "def"?: number, "spa"?: number, "spd"?: number, "spe"?: number } } ] }',
+  'No markdown fences, no commentary, no nicknames.',
 ].join('\n');
 
 /**
@@ -121,6 +95,16 @@ export function parseTeamFromJson(text: string): Team {
   for (const raw of rawMembers) {
     const member = toMember(raw);
     if (member) {
+      // Fix common vision artifacts or missing forms
+      if (member.species === 'Goodra' && member.moves?.includes('Shelter')) {
+        member.species = 'Goodra-Hisui';
+      }
+      if (member.species === 'Ursaluna' && member.moves?.includes('Blood Moon')) {
+        member.species = 'Ursaluna-Bloodmoon';
+      }
+      
+      // If the model gave us a nickname or a slight typo, healing logic here
+      // can cross-reference the moves/ability to verify the species.
       members.push(member);
     }
   }

@@ -34,12 +34,13 @@
         <input
           type="file"
           accept="image/*"
+          multiple
           (change)="onScreenshot($event)"
           [disabled]="importing()"
           hidden
         />
         <span class="team__import-icon" aria-hidden="true">&#9783;</span>
-        {{ importing() ? 'Reading\u2026' : 'Import from screenshot' }}
+        {{ importing() ? 'Reading\u2026' : 'Import from screenshots' }}
       </label>
     </div>
   </header>
@@ -201,7 +202,7 @@
       name="q"
       [(ngModel)]="inputText"
       (keydown)="onKeydown($event)"
-      placeholder="TODO include the a new generated question as suggestion"
+      [placeholder]="inputPlaceholder()"
       autocomplete="off"
     />
     <button type="submit" [disabled]="loading()" aria-label="Send">
