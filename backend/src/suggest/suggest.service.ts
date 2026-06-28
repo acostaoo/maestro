@@ -156,7 +156,8 @@ export class SuggestService implements OnModuleInit {
   }
 
   private loadThreats(): MetaThreat[] {
-    const all = this.sets.all();
+    const all = this.
+    sets.all();
     if (all.length === 0) {
       this.logger.warn('No sets loaded in SetsRepository — threat list empty.');
       return [];

@@ -7,7 +7,7 @@ import type {
 } from '../scenario/scenario.types';
 import type { NarratedAnswer, Nlg } from './nlg.interface';
 
-type VerdictKind = 'survives' | 'risky' | 'ko';
+type VerdictKind = 'survives' | 'risky' | 'ko'| 'conditional';
 
 /** Display names for boost stats, e.g. atk → "Atk". */
 const STAT_LABEL: Record<keyof BoostSpread, string> = {
